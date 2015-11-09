@@ -56,6 +56,7 @@ static int _encontrar_candidato(struct btree_nodo *b, int clave) {
 
 static int _btree_handle_overflow(struct btree_nodo *b, struct btree_nodo *hijo) {
   int medio;
+  int old_elems;
   int indice_elemento_candidato;
   int k;
   struct btree_nodo *nuevo_derecho;
@@ -78,10 +79,20 @@ static int _btree_handle_overflow(struct btree_nodo *b, struct btree_nodo *hijo)
          sizeof(int) * nuevo_derecho->num_elems);
 
   // otra manipulación cochina al hijo.
+  old_elems = hijo->num_elems;
   hijo->num_elems = medio;
 
+  // insertar el elemento del medio del hijo en el padre
   indice_elemento_candidato = _encontrar_candidato(b, hijo->elementos[medio]);
   _btree_insertar_elemento(b, hijo->elementos[medio], indice_elemento_candidato);
+
+  // antes de colgar, si el hijo tiene hijos hay que arreglarlos
+  if(hijo->hijos != NULL){
+    // los hijos izquierdos quedaran bien puestos al haber reducido hijo->num_elems
+    // pero los hijos derechos debemos recopiarlos
+    nuevo_derecho->hijos = (struct btree_nodo **)malloc((B+2) * sizeof(struct btree_nodo *));
+    memcpy(nuevo_derecho->hijos, hijo->hijos + medio + 1, sizeof(struct btree_nodo *) * (old_elems - medio));
+  }
 
   b->hijos[indice_elemento_candidato] = hijo;
   b->hijos[indice_elemento_candidato + 1] = nuevo_derecho;
