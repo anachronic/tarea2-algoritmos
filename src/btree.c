@@ -59,35 +59,16 @@ static int _encontrar_candidato(struct btree_nodo *b, int clave) {
   return k;
 }
 
-// retorna true si debe subir el elemento por overflow
-static int _btree_insertar(struct btree_nodo *candidato, int clave) {
-  int indice_hijo_candidato;
-  int indice_elemento_candidato;
-  int retorno;
+static int _btree_handle_overflow(struct btree_nodo *b, struct btree_nodo *hijo) {
   int medio;
-  struct btree_nodo *hijo;
+  int indice_elemento_candidato;
   struct btree_nodo *nuevo_derecho;
+  struct btree_nodo *hijo;
 
-  if(candidato->hijos == NULL){
-    indice_elemento_candidato = _encontrar_candidato(candidato, clave);
-    retorno = _btree_insertar_elemento(candidato, clave, indice_elemento_candidato);
-
-    if(candidato->num_elems > candidato->max_elems) return 1;
-    else return 0;
-  }
-
-  indice_hijo_candidato = _encontrar_candidato(candidato, clave);
-  hijo = candidato->hijos[indice_hijo_candidato];
-  retorno = _btree_insertar(hijo, clave);
-
-  // si no hay overflow, chao
-  if(retorno == 0) return 0;
-
-  // de aquí en adelante HAY OVERFLOW
-  medio = (int)hijo->max_elems/2;
+  medio = (int) hijo->max_elems / 2;
 
   // manipulacion cochina.
-  nuevo_derecho = (struct btree_nodo *)malloc(sizeof(struct btree_nodo));
+  nuevo_derecho = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
   btree_nodo_new(nuevo_derecho);
   nuevo_derecho->num_elems = hijo->max_elems - medio;
   // copiamos los elementos "del lado derecho" al nuevo nodo.
@@ -97,31 +78,64 @@ static int _btree_insertar(struct btree_nodo *candidato, int clave) {
   // otra manipulación cochina al hijo.
   hijo->num_elems = medio;
 
-  indice_elemento_candidato = _encontrar_candidato(candidato, hijo->elementos[medio]);
-  _btree_insertar_elemento(candidato, hijo->elementos[medio], indice_elemento_candidato);
+  indice_elemento_candidato = _encontrar_candidato(b, hijo->elementos[medio]);
+  _btree_insertar_elemento(b, hijo->elementos[medio], indice_elemento_candidato);
 
-  candidato->hijos[indice_elemento_candidato] = hijo;
-  candidato->hijos[indice_elemento_candidato + 1] = nuevo_derecho;
+  b->hijos[indice_elemento_candidato] = hijo;
+  b->hijos[indice_elemento_candidato + 1] = nuevo_derecho;
 
-  if(candidato->num_elems > candidato->max_elems) return 1;
+  if (b->num_elems > b->max_elems) return 1;
   return 0;
 }
 
-/*void btree_insertar(struct btree_nodo *btree, int clave){
- * // caso base: B-Tree vacío
-  if(btree->num_elems == 0){
+// retorna true si debe subir el elemento por overflow
+static int _btree_insertar(struct btree_nodo *candidato, int clave) {
+  int indice_hijo_candidato;
+  int indice_elemento_candidato;
+  int retorno;
+  int medio;
+  struct btree_nodo *hijo;
+  struct btree_nodo *nuevo_derecho;
+
+  if (candidato->hijos == NULL) {
+    indice_elemento_candidato = _encontrar_candidato(candidato, clave);
+    retorno = _btree_insertar_elemento(candidato, clave, indice_elemento_candidato);
+
+    if (candidato->num_elems > candidato->max_elems) return 1;
+    else return 0;
+  }
+
+  indice_hijo_candidato = _encontrar_candidato(candidato, clave);
+  hijo = candidato->hijos[indice_hijo_candidato];
+  retorno = _btree_insertar(hijo, clave);
+
+  // si no hay overflow, chao
+  if (retorno == 0) return 0;
+
+  // de aquí en adelante HAY OVERFLOW
+  return _btree_handle_overflow(candidato, hijo);
+}
+
+void btree_insertar(struct btree_nodo *btree, int clave) {
+  int retorno;
+  struct btree_nodo *nueva_raiz;
+
+  // caso base: B-Tree vacío
+  if (btree->num_elems == 0) {
     _btree_insertar_elemento(btree, clave, 0);
     return;
   }
-  if(btree->num_elems < btree->max_elems){
-    int k, desiredPos;
-    k=0;
-    while(clave < btree->elems
-  }
-}*/
 
+  retorno = _btree_insertar(btree, clave);
+  if (retorno == 0) return;
 
+  // a partir de este momento hay overflow en la raíz.
+  nueva_raiz = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
+  btree_nodo_new(nueva_raiz);
 
+  // esto siempre retorna 0, asi que chao con el valor de retorno.
+  _btree_handle_overflow(nueva_raiz, btree);
+}
 
 
 void btree_dispose(struct btree_nodo *btree) {
