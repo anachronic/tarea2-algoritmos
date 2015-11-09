@@ -1,12 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "btree.h"
 #include "parametros.h"
 
 void btree_nodo_new(struct btree_nodo *btree) {
-  int k;
-
   btree->num_elems = 0;
   btree->max_elems = B;
   // Almacena 1 elemento más (en caso de overflow)
@@ -18,21 +17,17 @@ void btree_nodo_new(struct btree_nodo *btree) {
 int btree_search(struct btree_nodo *btree, int clave) {
   int k = 0;
 
-  if (btree == NULL || btree->num_elems == 0) return -1;
+  if (btree == NULL || btree->num_elems == 0) return 0;
 
-  while (k < btree->num_elems && clave < btree->elementos[k]) k++;
+  while (k < btree->num_elems && clave > btree->elementos[k]) k++;
 
-  if (clave == btree->elementos[k] && k < btree->max_elems) return 1; // true
+  if (clave == btree->elementos[k] && k < btree->num_elems) return 1; // true
 
+  if(btree->hijos == NULL) return 0;
   return btree_search(btree->hijos[k], clave);
 }
 
 static void _btree_insertar_elemento(struct btree_nodo *btree, int clave, int posicion) {
-  int *elementos;
-  int bloques_a_mover;
-
-  elementos = btree->elementos;
-
   if (posicion > btree->num_elems) {
     fprintf(stderr, "error de consistencia en nodo del b-tree\n");
     exit(-1);
@@ -62,17 +57,24 @@ static int _encontrar_candidato(struct btree_nodo *b, int clave) {
 static int _btree_handle_overflow(struct btree_nodo *b, struct btree_nodo *hijo) {
   int medio;
   int indice_elemento_candidato;
+  int k;
   struct btree_nodo *nuevo_derecho;
-  struct btree_nodo *hijo;
 
   medio = (int) hijo->max_elems / 2;
+
+  if(b->hijos == NULL){
+    // tendremos B+2 hijos (es +1 que elementos, xq daremos espacio adicional para overflow.
+    b->hijos = (struct btree_nodo**)malloc((B+2)* sizeof(struct btree_nodo *));
+//    for(k=0; k<B+2; k++)
+//      b->hijos[k] = (struct btree_nodo *)malloc(sizeof(struct btree_nodo *));
+  }
 
   // manipulacion cochina.
   nuevo_derecho = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
   btree_nodo_new(nuevo_derecho);
   nuevo_derecho->num_elems = hijo->max_elems - medio;
   // copiamos los elementos "del lado derecho" al nuevo nodo.
-  memcpy(nuevo_derecho->elementos, hijo->elementos + nuevo_derecho->num_elems + 1,
+  memcpy(nuevo_derecho->elementos, hijo->elementos + nuevo_derecho->num_elems,
          sizeof(int) * nuevo_derecho->num_elems);
 
   // otra manipulación cochina al hijo.
@@ -93,13 +95,11 @@ static int _btree_insertar(struct btree_nodo *candidato, int clave) {
   int indice_hijo_candidato;
   int indice_elemento_candidato;
   int retorno;
-  int medio;
   struct btree_nodo *hijo;
-  struct btree_nodo *nuevo_derecho;
 
   if (candidato->hijos == NULL) {
     indice_elemento_candidato = _encontrar_candidato(candidato, clave);
-    retorno = _btree_insertar_elemento(candidato, clave, indice_elemento_candidato);
+    _btree_insertar_elemento(candidato, clave, indice_elemento_candidato);
 
     if (candidato->num_elems > candidato->max_elems) return 1;
     else return 0;
@@ -116,18 +116,18 @@ static int _btree_insertar(struct btree_nodo *candidato, int clave) {
   return _btree_handle_overflow(candidato, hijo);
 }
 
-void btree_insertar(struct btree_nodo *btree, int clave) {
-  int retorno;
+struct btree_nodo *btree_insertar(struct btree_nodo *btree, int clave) {
+  int retorno, k;
   struct btree_nodo *nueva_raiz;
 
   // caso base: B-Tree vacío
   if (btree->num_elems == 0) {
     _btree_insertar_elemento(btree, clave, 0);
-    return;
+    return btree;
   }
 
   retorno = _btree_insertar(btree, clave);
-  if (retorno == 0) return;
+  if (retorno == 0) return btree;
 
   // a partir de este momento hay overflow en la raíz.
   nueva_raiz = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
@@ -135,6 +135,8 @@ void btree_insertar(struct btree_nodo *btree, int clave) {
 
   // esto siempre retorna 0, asi que chao con el valor de retorno.
   _btree_handle_overflow(nueva_raiz, btree);
+
+  return nueva_raiz;
 }
 
 
