@@ -8,7 +8,6 @@
 typedef struct btree_nodo {
   int num_elems;
   int max_elems;
-  int hijos_activos;
   int *elementos;
   struct btree_nodo **hijos;
 } btree;
