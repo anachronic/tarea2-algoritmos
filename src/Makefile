@@ -5,8 +5,8 @@ PROGNAME=tarea2
 
 default : $(PROGNAME)
 
-tarea1 : tarea1.o
-	$(CC) $(CFLAGS) tarea2.o btree.o hashext.o hashlin.o -o $(PROGNAME) $(LDFLAGS)
+extmem.o :
+	$(CC) $(CFLAGS) extmem.c -o extmem.o -c
 
 tarea2.o :
 	$(CC) $(CFLAGS) tarea2.c -o tarea2.o -c
@@ -19,6 +19,9 @@ hashext.o :
 
 hashlin.o :
 	$(CC) $(CFLAGS) hash_lineal.c -o hashlin.o -c
+
+tarea2 : tarea2.o btree.o hashext.o hashlin.o extmem.o
+	$(CC) $(CFLAGS) tarea2.o btree.o hashext.o hashlin.o extmem.o -o $(PROGNAME) $(LDFLAGS)
 
 clean:
 	rm -rf *.o *.dat *~ $(PROGNAME)
