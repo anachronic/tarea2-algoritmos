@@ -20,9 +20,14 @@ int main() {
 
   printf("%i deberia ser igual a 1\n", btree_search(a23, 1));
   printf("%i deberia ser igual a 1\n", btree_search(a23, 2));
-  printf("%i deberia ser igual a 1\n", btree_search(a23, 4));
+  printf("%i deberia ser igual a 1\n", btree_search(a23, 3));
   printf("%i deberia ser igual a 1\n", btree_search(a23, 8));
+  printf("\nPOTENCIALES FALLAS\n\n");
+  printf("%i deberia ser igual a 1\n", btree_search(a23, 5));
+  printf("%i deberia ser igual a 1\n", btree_search(a23, 7));
+  printf("%i deberia ser igual a 1\n", btree_search(a23, 9));
   printf("%i deberia ser igual a 1\n", btree_search(a23, 10));
+  printf("\n\nFIN POTENCIALES FALLAS\n\n");
   printf("%i deberia ser igual a 0\n", btree_search(a23, 912));
 
   return 0;
