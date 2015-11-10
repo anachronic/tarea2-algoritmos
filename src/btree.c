@@ -5,12 +5,22 @@
 #include "btree.h"
 #include "parametros.h"
 
-void btree_nodo_new(struct btree_nodo *btree) {
-  btree->num_elems = 0;
-  btree->max_elems = B;
-  // Almacena 1 elemento más (en caso de overflow)
-  btree->elementos = (int *) malloc((B + 1) * sizeof(int));
-  btree->hijos = NULL;
+void btree_nodo_new(char *archivo) {
+  FILE *f;
+  char *buffer;
+
+  f = fopen(archivo, "w");
+
+  // Todos los bytes son 0.
+  buffer = (char*)calloc(1,sizeof(int));
+
+  if(fwrite(buffer, sizeof(char), sizeof(int), f) != sizeof(int) * sizeof(char)){
+    fprintf(stderr, "No se ha podido inicializar el diccionario. Abortando");
+    exit(-1);
+  }
+
+  free(buffer);
+  fclose(f);
 }
 
 
@@ -161,3 +171,40 @@ void btree_dispose(struct btree_nodo *btree) {
     free(btree->elementos);
   }
 }
+
+
+char *serializar_nodo(struct btree_nodo *b){
+  char *buffer;
+  int num_elems;
+
+  buffer = (char*)calloc(B, sizeof(char));
+  num_elems = b->num_elems;
+  elementos = b->elementos;
+
+  // copiamos los bits desde el int al buffer [# de elementos]
+  memcpy(buffer, &num_elems, sizeof(int));
+
+  memcpy(buffer + sizeof(int), b->elementos, TAMANO_CADENA*num_elems);
+//  memcpy()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

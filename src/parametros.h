@@ -4,6 +4,7 @@
 #define TAMANO_BLOQUE 3
 #define B TAMANO_BLOQUE
 
-#define TAMANO_CADENA 15
+// Las cadenas seran strings normales de C (ie 15 + 1 bytes).
+#define TAMANO_CADENA 16
 
 #endif //TAREA2_ALGORITMOS_PARAMETROS_H
