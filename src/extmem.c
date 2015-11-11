@@ -8,18 +8,24 @@
 /*
  * Recupera el bloque-ésimo bloque del archivo. Los bloques
  * se cuentan desde 0, y cada bloque tiene tamaño B, indicado
- * en el archivo parametros.h
+ * en el archivo parametros.h. La búsqueda de bloques se hace
+ * con offset bytes de offset con respecto al principio del
+ * programa. Por ejemplo, si se busca el bloque 0 con offset 4
+ * obtendremos B elementos que empiezan desde el byte 4 (inclusive)
  *
  * De no existir el bloque, se termina el programa.
+ *
+ * El usuario de esta función es reponsable de liberar (free)
+ * el buffer retornado!!!!!!
  */
-char *recuperar_bloque(const char *archivo, int bloque) {
+char *recuperar_bloque(const char *archivo, int bloque, size_t offset) {
   FILE *f;
   char *buffer;
 
   f = fopen(archivo, "rb");
   buffer = (char *) malloc(B * sizeof(char));
 
-  if (fseek(f, TAMANO_BLOQUE * bloque, SEEK_SET) != 0) {
+  if (fseek(f, TAMANO_BLOQUE * bloque + offset, SEEK_SET) != 0) {
     fprintf(stderr, "El bloque especificado no existe. Abortando.\n");
     exit(-1);
   }

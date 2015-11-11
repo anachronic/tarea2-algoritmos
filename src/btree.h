@@ -8,6 +8,7 @@
 
 typedef struct btree_nodo {
   int num_elems;
+  int num_hijos;
   char **elementos;
   int *hijos;
 } btree;
@@ -16,7 +17,7 @@ typedef struct btree_nodo {
 void btree_new(char *archivo);
 
 //retorna bool
-int btree_search(struct btree_nodo *btree, int clave);
+int btree_search(const char *btree, const char *cadena);
 void btree_eliminar(struct btree_nodo *btree, int clave);
 struct btree_nodo *btree_insertar(struct btree_nodo *btree, int clave);
 
