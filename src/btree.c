@@ -75,11 +75,7 @@ static int _btree_search(const char *btree, const char *cadena, int indice) {
   // http://www.cplusplus.com/reference/cstdlib/bsearch/
   while (k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) > 0) k++;
 
-  if(k >= nodo->num_elems){
-    btree_nodo_dispose(nodo);
-    return 0;
-  }
-  if (strcmp(cadena, nodo->elementos[k]) == 0){
+  if (k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) == 0){
     btree_nodo_dispose(nodo);
     return 1;
   }
@@ -127,6 +123,7 @@ static int _encontrar_candidato(struct btree_nodo *b, const char *clave) {
   if (b->num_elems == 0) return 0;
 
   while (k < b->num_elems && strcmp(clave, b->elementos[k]) > 0) k++;
+  if(k < b->num_elems && strcmp(clave, b->elementos[k]) == 0) return -1;
   return k;
 }
 
@@ -135,6 +132,7 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
   int old_elems;
   int indice_elemento_candidato;
   struct btree_nodo *nuevo_derecho;
+  char *buf;
 
   medio = (int) BTREE_ELEMS_NODO / 2;
 
@@ -151,7 +149,7 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
   // en memoria principal ambas estructuras quedan linkeadas
   // pero en memoria secundaria cada una queda con sus propias
   // copias de las cadenas
-  memcpy(nuevo_derecho->elementos, hijo->elementos + nuevo_derecho->num_elems,
+  memcpy(nuevo_derecho->elementos, hijo->elementos + nuevo_derecho->num_elems + 1,
          sizeof(char*) * nuevo_derecho->num_elems);
 
   old_elems = hijo->num_elems;
@@ -170,11 +168,15 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
     memcpy(nuevo_derecho->hijos, hijo->hijos + medio + 1, sizeof(int) * (old_elems - medio));
   }
 
+  b->num_hijos = b->num_elems + 1;
   b->hijos[indice_elemento_candidato] = hijo->indice;
   b->hijos[indice_elemento_candidato + 1] = nuevo_derecho->indice;
 
   // guardar SI O SI el elemento nuevo en memoria
-  _volcar_memext(btree, nuevo_derecho, nuevo_derecho->indice);
+  buf = serializar_nodo(nuevo_derecho);
+  append_bloque(btree, buf);
+  free(buf);
+  btree_nodo_dispose(nuevo_derecho);
 }
 
 // retorna el nodo (en MEMORIA PRINCIPAL) que tiene overflow. Dicho nodo está en
@@ -194,7 +196,10 @@ static struct btree_nodo *_btree_insertar(const char *btree, const char *cadena,
   // este es el procedimiento para insertar el elemento en una HOJA
   if (padre->num_hijos == 0) {
     indice_elemento = _encontrar_candidato(padre, cadena);
-    _btree_insertar_elemento(padre, cadena, indice_elemento);
+
+    if(indice_elemento >= 0){
+      _btree_insertar_elemento(padre, cadena, indice_elemento);
+    }
 
     // si hay overflow mi padre "me saca" mi overflow y él es responsable de mandarme a disco
     if (padre->num_elems > BTREE_ELEMS_NODO) return padre;
@@ -207,7 +212,8 @@ static struct btree_nodo *_btree_insertar(const char *btree, const char *cadena,
 
   // si este nodo es interno, busco el camino por donde bajar e inserto recursivamente ahí
   indice_hijo_candidato = _encontrar_candidato(padre, cadena);
-  hijo = _btree_insertar(btree, cadena, indice_hijo_candidato);
+  if(indice_hijo_candidato >= 0) hijo = _btree_insertar(btree, cadena, indice_hijo_candidato);
+  else hijo = NULL;
 
   // si no hay overflow, serializo este nodo (correspondiente al "padre")
   // lo mando a disco
@@ -273,23 +279,24 @@ void btree_insertar(const char *btree, const char *cadena) {
   // una nueva raíz con un elemento :O
   nodo = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
 
-  nodo->num_hijos=0;
+  // la raiz siempre tendra de hijo al nodo que tiene overflow
+  // y al hacer _btree_handle_overflow
+  // tendremos el otro hijo creado.
+  nodo->num_hijos=1;
   nodo->num_elems=0;
   nodo->indice = last_indice(btree);
   nodo->elementos = (char**)malloc(sizeof(char*) * BTREE_ELEMS_NODO);
   nodo->hijos = (int*)malloc(sizeof(int) * (BTREE_ELEMS_NODO + 1));
+  buffer = serializar_nodo(nodo);
+  append_bloque(btree, buffer);
+  free(buffer);
 
   _btree_handle_overflow(btree, nodo, hijo);
 
   // ahora sí que podemos volcar los nodos a memoria secundaria y terminar
   _set_raiz(btree, nodo->indice);
   _volcar_memext(btree, hijo, hijo->indice);
-
-  buffer = serializar_nodo(nodo);
-  append_bloque(btree, buffer);
-  free(buffer);
-
-  btree_nodo_dispose(nodo);
+  _volcar_memext(btree, nodo, nodo->indice);
 }
 
 

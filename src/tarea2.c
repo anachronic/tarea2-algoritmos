@@ -9,7 +9,7 @@ int main() {
   srand48(getpid());
   btree_new(BTREE_FILE);
 
-  int cadenillas = 205;
+  int cadenillas = 210;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
@@ -28,6 +28,7 @@ int main() {
   for(k=0; k<cadenillas; k++){
     if(btree_search(BTREE_FILE, aleatorias[k]) == 1)
       encontrados++;
+    else printf("WARNING: No se encontró %s\n", aleatorias[k]);
   }
 
   printf("Encontrados %i elementos\n", encontrados);
