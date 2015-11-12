@@ -3,17 +3,38 @@
 #include <unistd.h>
 
 #include "btree.h"
+#include "cadenas.h"
 
 int main() {
   srand48(getpid());
   btree_new(BTREE_FILE);
 
-  btree_insertar(BTREE_FILE, "AAAAAAAAAAAAAAA");
-  btree_insertar(BTREE_FILE, "GGGGGGGGGGGGGGG");
+  int cadenillas = 205;
 
-  printf("%i = 1 (solo A)\n", btree_search(BTREE_FILE, "AAAAAAAAAAAAAAA"));
-  printf("%i = 1 (solo G)\n", btree_search(BTREE_FILE, "GGGGGGGGGGGGGGG"));
-  printf("%i = 0 (solo T)\n", btree_search(BTREE_FILE, "TTTTTTTTTTTTTTT"));
+  char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
+  int k = 0;
+
+  for(k=0; k<cadenillas; k++){
+    aleatorias[k] = (char*)malloc(sizeof(char)*16);
+    cadena_rand(aleatorias[k]);
+
+    btree_insertar(BTREE_FILE, aleatorias[k]);
+  }
+
+  int encontrados=0;
+
+  printf("Buscando %i cadenas. Todas deben ser encontradas\n", cadenillas);
+
+  for(k=0; k<cadenillas; k++){
+    if(btree_search(BTREE_FILE, aleatorias[k]) == 1)
+      encontrados++;
+  }
+
+  printf("Encontrados %i elementos\n", encontrados);
+
+  for(k=0; k<cadenillas; k++) free(aleatorias[k]);
+
+  free(aleatorias);
 
   return 0;
 }

@@ -114,7 +114,7 @@ static void _btree_insertar_elemento(struct btree_nodo *btree, const char *clave
   cadena = strdup(clave);
 
   if (posicion < btree->num_elems) {
-    memmove(btree->elementos + posicion, btree->elementos + (posicion + 1),
+    memmove(btree->elementos + (posicion + 1), btree->elementos + posicion,
             sizeof(char *) * (btree->num_elems - posicion));
   }
 
