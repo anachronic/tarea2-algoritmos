@@ -57,7 +57,6 @@ static int _btree_search(const char *btree, const char *cadena, int indice) {
 
   serializado = recuperar_bloque(btree, indice, sizeof(int));
   nodo = deserializar_nodo(serializado);
-
   free(serializado);
 
   k = 0;
@@ -65,8 +64,14 @@ static int _btree_search(const char *btree, const char *cadena, int indice) {
   // http://www.cplusplus.com/reference/cstdlib/bsearch/
   while (k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) > 0) k++;
 
-  if (strcmp(cadena, nodo->elementos[k]) == 0) return 1;
-  if (nodo->num_hijos <= 0) return 0;
+  if (strcmp(cadena, nodo->elementos[k]) == 0){
+    btree_nodo_dispose(nodo);
+    return 1;
+  }
+  if (nodo->num_hijos <= 0){
+    btree_nodo_dispose(nodo);
+    return 0;
+  }
 
   indice_hijo = nodo->hijos[k];
   btree_nodo_dispose(nodo);
@@ -78,7 +83,6 @@ int btree_search(const char *btree, const char *cadena) {
   int raiz = _get_raiz(btree);
 
   if (raiz < 0) {
-    fprintf(stderr, "Error: El archivo especificado no corresponde a un B-Tree");
     return -1;
   }
 
