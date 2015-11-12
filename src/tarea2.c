@@ -9,7 +9,7 @@ int main() {
   srand48(getpid());
   btree_new(BTREE_FILE);
 
-  int cadenillas = 210;
+  int cadenillas = 800;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
