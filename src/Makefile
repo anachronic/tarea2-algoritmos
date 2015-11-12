@@ -23,8 +23,11 @@ hashlin.o :
 fallos.o :
 	$(CC) $(CFLAGS) fallos.c -o fallos.o -c
 
-tarea2 : tarea2.o btree.o hashext.o hashlin.o extmem.o fallos.o
-	$(CC) $(CFLAGS) tarea2.o btree.o hashext.o hashlin.o extmem.o fallos.o -o $(PROGNAME) $(LDFLAGS)
+cadenas.o :
+	$(CC) $(CFLAGS) cadenas.c -o cadenas.o -c
+
+tarea2 : tarea2.o btree.o hashext.o hashlin.o extmem.o fallos.o cadenas.o
+	$(CC) $(CFLAGS) tarea2.o btree.o hashext.o hashlin.o extmem.o fallos.o cadenas.o -o $(PROGNAME) $(LDFLAGS)
 
 clean:
 	rm -rf *.o *.dat *~ $(PROGNAME) btree.data

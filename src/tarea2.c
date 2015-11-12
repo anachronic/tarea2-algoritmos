@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "btree.h"
 
 int main() {
+  srand48(getpid());
   btree_new(BTREE_FILE);
 
   btree_insertar(BTREE_FILE, "AAAAAAAAAAAAAAA");
