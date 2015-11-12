@@ -16,8 +16,7 @@ void btree_new(char *archivo) {
   // marcar que es un arbol nuevo (raiz es -1)
   raiz = -1;
 
-  if (fwrite(&raiz, sizeof(int), 1, f) != sizeof(int))
-    fallar("No se ha podido inicializar el diccionario. Abortando");
+  fwrite(&raiz, sizeof(int), 1, f);
 
   fclose(f);
 }
@@ -32,6 +31,18 @@ static int _get_raiz(const char *archivo) {
   fread(&raiz, sizeof(int), 1, f);
   fclose(f);
   return raiz;
+}
+
+static void _set_raiz(const char *archivo, int indice) {
+  FILE *f;
+
+  if ((f = fopen(archivo, "rb+")) == NULL)
+    fallar("Error al abrir en B-Tree");
+
+  fseek(f, 0, SEEK_SET);
+  fwrite(&indice, sizeof(int), 1, f);
+  fflush(f);
+  fclose(f);
 }
 
 static void _volcar_memext(const char *btree, struct btree_nodo *nodo, int indice_nodo){
@@ -64,6 +75,10 @@ static int _btree_search(const char *btree, const char *cadena, int indice) {
   // http://www.cplusplus.com/reference/cstdlib/bsearch/
   while (k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) > 0) k++;
 
+  if(k >= nodo->num_elems){
+    btree_nodo_dispose(nodo);
+    return 0;
+  }
   if (strcmp(cadena, nodo->elementos[k]) == 0){
     btree_nodo_dispose(nodo);
     return 1;
@@ -172,7 +187,7 @@ static struct btree_nodo *_btree_insertar(const char *btree, const char *cadena,
   struct btree_nodo *padre; // el nodo-esimo nodo en btree.
   char *buf;
 
-  buf = recuperar_bloque(btree, nodo, 2 * sizeof(int));
+  buf = recuperar_bloque(btree, nodo, sizeof(int));
   padre = deserializar_nodo(buf);
   free(buf);
 
@@ -221,8 +236,8 @@ static struct btree_nodo *_btree_insertar(const char *btree, const char *cadena,
 
 void btree_insertar(const char *btree, const char *cadena) {
   int raiz;
-  int retorno;
   struct btree_nodo *nodo;
+  struct btree_nodo *hijo;
   char *clave;
   char *buffer;
 
@@ -233,6 +248,7 @@ void btree_insertar(const char *btree, const char *cadena) {
     nodo = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
     nodo->num_hijos = 0;
     nodo->num_elems = 1;
+    nodo->indice = 0;
     nodo->elementos = (char **) malloc(sizeof(char *) * BTREE_ELEMS_NODO);
     nodo->elementos[0] = clave;
     nodo->hijos = (int *) malloc(sizeof(int) * (BTREE_ELEMS_NODO + 1));
@@ -243,47 +259,39 @@ void btree_insertar(const char *btree, const char *cadena) {
     free(clave);
     free(buffer);
     btree_nodo_dispose(nodo);
+    _set_raiz(btree, 0);
     return;
   }
 
-  retorno = _btree_insertar(btree, cadena, raiz);
-  if (retorno == 0) {
-    // no hay overflow en la raiz.
-    /*
-     * ALGORITMO:
-     *
-     * Ahora _btree_insertar retorna un struct que tiene
-     * un puntero al nodo (padre) y si tiene overflow. En este caso
-     * retorno tiene valor 0, de manera que serializamos el nodo que
-     * entrega el resultado y lo ponemos en memoria secundaria.
-     */
-  }
+  hijo = _btree_insertar(btree, cadena, raiz);
 
+  // si hijo es NULL significa que el elemento quedó correctamente insertado
+  // en algun nodo interno u hoja que NO ES LA RAÍZ y por lo tanto no hay nada
+  // que hacer
+  if(hijo == NULL) return;
 
+  // pero si hijo es != NULL tengo overflow en la raíz y hay que crear
+  // una nueva raíz con un elemento :O
+  nodo = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
+
+  nodo->num_hijos=0;
+  nodo->num_elems=0;
+  nodo->indice = last_indice(btree);
+  nodo->elementos = (char**)malloc(sizeof(char*) * BTREE_ELEMS_NODO);
+  nodo->hijos = (int*)malloc(sizeof(int) * (BTREE_ELEMS_NODO + 1));
+
+  _btree_handle_overflow(btree, nodo, hijo);
+
+  // ahora sí que podemos volcar los nodos a memoria secundaria y terminar
+  _set_raiz(btree, nodo->indice);
+  _volcar_memext(btree, hijo, hijo->indice);
+
+  buffer = serializar_nodo(nodo);
+  append_bloque(btree, buffer);
+  free(buffer);
+
+  btree_nodo_dispose(nodo);
 }
-
-//struct btree_nodo *btree_insertar(struct btree_nodo *btree, char *clave) {
-//  int retorno, k;
-//  struct btree_nodo *nueva_raiz;
-//
-//  // caso base: B-Tree vacío
-//  if (btree->num_elems == 0) {
-//    _btree_insertar_elemento(btree, clave, 0);
-//    return btree;
-//  }
-//
-//  retorno = _btree_insertar(btree, clave);
-//  if (retorno == 0) return btree;
-//
-//  // a partir de este momento hay overflow en la raíz.
-//  nueva_raiz = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
-//  btree_nodo_new(nueva_raiz);
-//
-//  // esto siempre retorna 0, asi que chao con el valor de retorno.
-//  _btree_handle_overflow(nueva_raiz, btree);
-//
-//  return nueva_raiz;
-//}
 
 
 void btree_dispose(const char *archivo) {
