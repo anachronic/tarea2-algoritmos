@@ -20,8 +20,11 @@ hashext.o :
 hashlin.o :
 	$(CC) $(CFLAGS) hash_lineal.c -o hashlin.o -c
 
-tarea2 : tarea2.o btree.o hashext.o hashlin.o extmem.o
-	$(CC) $(CFLAGS) tarea2.o btree.o hashext.o hashlin.o extmem.o -o $(PROGNAME) $(LDFLAGS)
+fallos.o :
+	$(CC) $(CFLAGS) fallos.c -o fallos.o -c
+
+tarea2 : tarea2.o btree.o hashext.o hashlin.o extmem.o fallos.o
+	$(CC) $(CFLAGS) tarea2.o btree.o hashext.o hashlin.o extmem.o fallos.o -o $(PROGNAME) $(LDFLAGS)
 
 clean:
 	rm -rf *.o *.dat *~ $(PROGNAME)

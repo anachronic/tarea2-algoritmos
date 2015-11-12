@@ -3,6 +3,7 @@
 
 #include "extmem.h"
 #include "parametros.h"
+#include "fallos.h"
 
 
 /*
