@@ -1,5 +1,8 @@
 #include <stddef.h>
+#include <stdlib.h>
 #include "hash_lineal.h"
+#include <string.h>
+#include <stdio.h>
 
 #define HASHLIN_STATE_STABLE 0
 #define HASHLIN_STATE_GROW 1
@@ -22,7 +25,7 @@ void hashlin_init(hashlin* hashlin){
 	hashlin->bucket_bit = HASHLIN_BIT;
 	hashlin->bucket_max = 1 << hashlin->bucket_bit;
 	hashlin->bucket_mask = hashlin->bucket_max - 1;
-	hashlin->bucket[0] = (hash_node**)malloc(hashlin->bucket_max, sizeof(hash_node*)));
+	hashlin->bucket[0] = (hash_node**)calloc(hashlin->bucket_max, sizeof(hash_node*));
 	for (i = 1; i < HASHLIN_BIT; ++i)
 		hashlin->bucket[i] = hashlin->bucket[0];
 
@@ -53,7 +56,7 @@ void hashlin_grow_step(hashlin* hashlin){
 		/* otherwise continue with the already setup shrink one */
 		/* but in backward direction */
 		if (hashlin->state == HASHLIN_STATE_STABLE) {
-			hashlin_node** segment;
+			hash_node** segment;
 
 			/* set the lower size */
 			hashlin->low_max = hashlin->bucket_max;
@@ -61,7 +64,7 @@ void hashlin_grow_step(hashlin* hashlin){
 
 			/* allocate the new vector using malloc() and not calloc() */
 			/* because data is fully initialized in the split process */
-			segment = (tommy_hashlin_node**)malloc(hashlin->low_max * sizeof(hashlin_node*));
+			segment = (hash_node**)malloc(hashlin->low_max * sizeof(hash_node*));
 
 			/* store it adjusting the offset */
 			/* cast to ptrdiff_t to ensure to get a negative value */
@@ -87,25 +90,25 @@ void hashlin_grow_step(hashlin* hashlin){
 
 		/* reallocate buckets until the split target */
 		while (hashlin->split + hashlin->low_max < split_target) {
-			hashlin_node** split[2];
-			hashlin_node* j;
+			hash_node** split[2];
+			hash_node* j;
 			unsigned int mask;
 
 			/* get the low bucket */
             unsigned int bsr;
-            posaux=hashlin->split;
+            unsigned int posaux=hashlin->split;
             bsr = 0;
             while(posaux>0){
-                posaux>>1;
+                posaux=posaux>>1;
                 bsr++;
             }
-            split[0] = &hashlin->bucket[bsr][haslin->split];
+            split[0] = &hashlin->bucket[bsr][hashlin->split];
 
 			/* get the high bucket */
 			posaux=hashlin->split + hashlin->low_max;
             bsr = 0;
             while(posaux>0){
-                posaux>>1;
+                posaux=posaux>>1;
                 bsr++;
             }
             split[1] = &hashlin->bucket[bsr][hashlin->split + hashlin->low_max];
@@ -179,26 +182,26 @@ void hashlin_shrink_step(hashlin* hashlin)
 
 		/* reallocate buckets until the split target */
 		while (hashlin->split + hashlin->low_max > split_target) {
-			hashlin_node** split[2];
+			hash_node** split[2];
 
 			/* go backward position */
 			--hashlin->split;
 
 			/* get the low bucket */
             unsigned int bsr;
-            posaux=hashlin->split;
+            unsigned int posaux=hashlin->split;
             bsr = 0;
             while(posaux>0){
-                posaux>>1;
+                posaux=posaux>>1;
                 bsr++;
             }
-            split[0] = &hashlin->bucket[bsr][haslin->split];
+            split[0] = &hashlin->bucket[bsr][hashlin->split];
 
 			/* get the high bucket */
 			posaux=hashlin->split + hashlin->low_max;
             bsr = 0;
             while(posaux>0){
-                posaux>>1;
+                posaux=posaux>>1;
                 bsr++;
             }
             split[1] = &hashlin->bucket[bsr][hashlin->split + hashlin->low_max];
@@ -240,7 +243,7 @@ void hashlin_insert(hashlin* hashlin, hash_node* node, void* data, unsigned int 
 
 void* hashlin_remove_existing(hashlin* hashlin, hash_node* node)
 {
-	tommy_list_remove_existing(hashlin_bucket_ref(hashlin, node->key), node);
+	list_remove_existing(hashlin_bucket_ref(hashlin, node->key), node);
 
 	--hashlin->count;
 
@@ -249,7 +252,7 @@ void* hashlin_remove_existing(hashlin* hashlin, hash_node* node)
 	return node->data;
 }
 
-/* Se quita a la función de separación de los argumentos, y se usa solo la igualdad */
+/* Se quita a la función de comparación de los argumentos, y se usa solo la igualdad */
 void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
 	hash_node** let_ptr = hashlin_bucket_ref(hashlin, hash);
 	hash_node* node = *let_ptr;
@@ -273,7 +276,7 @@ void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
 
 size_t hashlin_memory_usage(hashlin* hashlin){
 	return hashlin->bucket_max * (size_t)sizeof(hashlin->bucket[0][0])
-	       + hashlin->count * (size_t)sizeof(hashlin_node);
+	       + hashlin->count * (size_t)sizeof(hash_node);
 }
 
 void list_insert_tail(hash_node** list, hash_node* node, void* data){
@@ -308,7 +311,7 @@ void list_insert_first(hash_node** list, hash_node* node){
 	*list = node;
 }
 
-int list_empty(hash_node* list)
+int list_empty(hash_node** list)
 {
 	return list_head(list) == 0;
 }
@@ -343,7 +346,7 @@ hash_node* list_head(hash_node** list){
 }
 
 hash_node* list_tail(hash_node** list){
-	hash_node** head = list_head(list);
+	hash_node* head = list_head(list);
 
 	if (!head)
 		return 0;
@@ -367,4 +370,65 @@ void* list_remove_existing(hash_node** list, hash_node* node){
 		node->prev->next = node->next;
 
 	return node->data;
+}
+
+unsigned int DNAhash(char* s){
+    /* Pasamos a binario el primer caracter del string */
+    if(strlen(s)>0){
+        unsigned int n;
+        switch(s[0]){
+            case 'G':
+                n=0;
+                break;
+            case 'C':
+                n=1;
+                break;
+            case 'A':
+                n=2;
+                break;
+            case 'T':
+                n=3;
+                break;
+        }
+        n=n<<(2*strlen(s+1));
+        return n + DNAhash(s+1);
+    }
+    else
+        return 0;
+}
+
+hash_node** hashlin_bucket_ref(hashlin* hashlin, unsigned int hash){
+	unsigned int pos;
+	unsigned int high_pos;
+
+	pos = hash & hashlin->low_mask;
+	high_pos = hash & hashlin->bucket_mask;
+
+	/* if this position is already allocated in the high half */
+	if (pos < hashlin->split) {
+		pos = high_pos;
+	}
+
+	unsigned int bsr;
+
+	unsigned int posaux=pos;
+	bsr = 0;
+	while(posaux>0){
+        posaux=posaux>>1;
+        bsr++;
+	}
+
+	return &hashlin->bucket[bsr][pos];
+}
+
+void* hashlin_search(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
+	hash_node* i = *hashlin_bucket_ref(hashlin, hash);
+
+	while (i) {
+		/* we first check if the hash matches, as in the same bucket we may have multiples hash values */
+		if (i->key == hash && cmp_arg == i->data)
+			return i->data;
+		i = i->next;
+	}
+	return 0;
 }
