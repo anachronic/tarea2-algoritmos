@@ -131,6 +131,7 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
   int medio;
   int old_elems;
   int indice_elemento_candidato;
+  int k;
   struct btree_nodo *nuevo_derecho;
   char *buf;
 
@@ -310,6 +311,7 @@ void btree_insertar(const char *btree, const char *cadena) {
   buffer = serializar_nodo(nodo);
   append_bloque(btree, buffer);
   free(buffer);
+  btree_nodo_dispose(nodo);
 }
 
 
