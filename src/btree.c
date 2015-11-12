@@ -256,7 +256,6 @@ void btree_insertar(const char *btree, const char *cadena) {
     buffer = serializar_nodo(nodo);
     append_bloque(btree, buffer);
 
-    free(clave);
     free(buffer);
     btree_nodo_dispose(nodo);
     _set_raiz(btree, 0);
