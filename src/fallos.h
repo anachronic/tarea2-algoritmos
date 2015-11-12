@@ -1,0 +1,6 @@
+#ifndef TAREA2_ALGORITMOS_FALLOS_H
+#define TAREA2_ALGORITMOS_FALLOS_H
+
+void fallar(char *msg);
+
+#endif //TAREA2_ALGORITMOS_FALLOS_H
