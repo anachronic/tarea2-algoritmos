@@ -48,9 +48,9 @@ typedef struct hashlin_struct {
 /* Operaciones del diccionario */
 void hashlin_init(hashlin* hashlin);
 void hashlin_destroy(hashlin* hashlin);
-void hashlin_insert(hashlin* hashlin, hash_node* node, void* data, unsigned int hash);
-void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash);
-void* hashlin_search(hashlin* hashlin, const void* cmp_arg, unsigned int hash);
+void hashlin_insert(hashlin* hashlin, void* data);
+void* hashlin_remove(hashlin* hashlin, const void* cmp_arg);
+void* hashlin_search(hashlin* hashlin, const void* cmp_arg);
 
 /* Función de hash para las cadenas de ADN */
 unsigned int DNAhash(char* s);

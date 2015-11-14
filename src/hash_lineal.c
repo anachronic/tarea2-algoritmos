@@ -204,7 +204,11 @@ void hashlin_shrink_step(hashlin* hashlin)
 	}
 }
 
-void hashlin_insert(hashlin* hashlin, hash_node* node, void* data, unsigned int hash){
+void hashlin_insert(hashlin* hashlin, void* data){
+
+    hash_node* node=(hash_node*)malloc(sizeof(hash_node));
+
+    unsigned int hash=DNAhash((char*)data);
 
 	list_insert_tail(hashlin_bucket_ref(hashlin, hash), node, data);
 
@@ -227,7 +231,8 @@ void* hashlin_remove_existing(hashlin* hashlin, hash_node* node)
 }
 
 /* Se quita a la función de comparación de los argumentos, y se usa solo la igualdad */
-void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
+void* hashlin_remove(hashlin* hashlin, const void* cmp_arg){
+    unsigned int hash=DNAhash((char*)cmp_arg);
 	hash_node** let_ptr = hashlin_bucket_ref(hashlin, hash);
 	hash_node* node = *let_ptr;
 
@@ -248,7 +253,8 @@ void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
 	return 0;
 }
 
-void* hashlin_search(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
+void* hashlin_search(hashlin* hashlin, const void* cmp_arg){
+    unsigned int hash=DNAhash((char*)cmp_arg);
 	hash_node* i = *hashlin_bucket_ref(hashlin, hash);
 
 	while (i) {
