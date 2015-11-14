@@ -45,33 +45,27 @@ typedef struct hashlin_struct {
 	unsigned int state; /**< Reallocation state. */
 } hashlin;
 
+/* Operaciones del diccionario */
 void hashlin_init(hashlin* hashlin);
-
 void hashlin_destroy(hashlin* hashlin);
-
 void hashlin_insert(hashlin* hashlin, hash_node* node, void* data, unsigned int hash);
-
 void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash);
-
-unsigned int DNAhash(char* s);
-
-hash_node** hashlin_bucket_ref(hashlin* hashlin, unsigned int hash);
-
-/* Se quita a la función de comparación de los argumentos, y se usa solo la igualdad */
 void* hashlin_search(hashlin* hashlin, const void* cmp_arg, unsigned int hash);
 
+/* Función de hash para las cadenas de ADN */
+unsigned int DNAhash(char* s);
+
+/* Funciones auxiliares */
+hash_node** hashlin_pos(hashlin* hashlin, unsigned int pos);
+unsigned int ilog2_u32(unsigned int value);
+hash_node** hashlin_bucket_ref(hashlin* hashlin, unsigned int hash);
+
+/* Listas enlazadas */
 void list_insert_tail(hash_node** list, hash_node* node, void* data);
-
 void list_insert_tail_not_empty(hash_node* head, hash_node* node);
-
 void list_insert_first(hash_node** list, hash_node* node);
-
 int list_empty(hash_node** list);
-
 void list_concat(hash_node** first, hash_node** second);
-
 hash_node* list_head(hash_node** list);
-
 hash_node* list_tail(hash_node** list);
-
 void* list_remove_existing(hash_node** list, hash_node* node);

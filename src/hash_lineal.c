@@ -95,23 +95,10 @@ void hashlin_grow_step(hashlin* hashlin){
 			unsigned int mask;
 
 			/* get the low bucket */
-            unsigned int bsr;
-            unsigned int posaux=hashlin->split;
-            bsr = 0;
-            while(posaux>0){
-                posaux=posaux>>1;
-                bsr++;
-            }
-            split[0] = &hashlin->bucket[bsr][hashlin->split];
+			split[0] = hashlin_pos(hashlin, hashlin->split);
 
 			/* get the high bucket */
-			posaux=hashlin->split + hashlin->low_max;
-            bsr = 0;
-            while(posaux>0){
-                posaux=posaux>>1;
-                bsr++;
-            }
-            split[1] = &hashlin->bucket[bsr][hashlin->split + hashlin->low_max];
+			split[1] = hashlin_pos(hashlin, hashlin->split + hashlin->low_max);
 
 			/* save the low bucket */
 			j = *split[0];
@@ -188,23 +175,10 @@ void hashlin_shrink_step(hashlin* hashlin)
 			--hashlin->split;
 
 			/* get the low bucket */
-            unsigned int bsr;
-            unsigned int posaux=hashlin->split;
-            bsr = 0;
-            while(posaux>0){
-                posaux=posaux>>1;
-                bsr++;
-            }
-            split[0] = &hashlin->bucket[bsr][hashlin->split];
+			split[0] = hashlin_pos(hashlin, hashlin->split);
 
 			/* get the high bucket */
-			posaux=hashlin->split + hashlin->low_max;
-            bsr = 0;
-            while(posaux>0){
-                posaux=posaux>>1;
-                bsr++;
-            }
-            split[1] = &hashlin->bucket[bsr][hashlin->split + hashlin->low_max];
+			split[1] = hashlin_pos(hashlin, hashlin->split + hashlin->low_max);
 
 			/* concat the high bucket into the low one */
 			list_concat(split[0], split[1]);
@@ -274,9 +248,74 @@ void* hashlin_remove(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
 	return 0;
 }
 
+void* hashlin_search(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
+	hash_node* i = *hashlin_bucket_ref(hashlin, hash);
+
+	while (i) {
+		/* we first check if the hash matches, as in the same bucket we may have multiples hash values */
+		if (i->key == hash && cmp_arg == i->data)
+			return i->data;
+		i = i->next;
+	}
+	return 0;
+}
+
 size_t hashlin_memory_usage(hashlin* hashlin){
 	return hashlin->bucket_max * (size_t)sizeof(hashlin->bucket[0][0])
 	       + hashlin->count * (size_t)sizeof(hash_node);
+}
+
+unsigned int DNAhash(char* s){
+    /* Pasamos a binario el primer caracter del string */
+    if(strlen(s)>0){
+        unsigned int n;
+        switch(s[0]){
+            case 'G':
+                n=0;
+                break;
+            case 'C':
+                n=1;
+                break;
+            case 'A':
+                n=2;
+                break;
+            case 'T':
+                n=3;
+                break;
+        }
+        n=n<<(2*strlen(s+1));
+        return n + DNAhash(s+1);
+    }
+    else
+        return 0;
+}
+
+hash_node** hashlin_bucket_ref(hashlin* hashlin, unsigned int hash){
+	unsigned int pos;
+	unsigned int high_pos;
+
+	pos = hash & hashlin->low_mask;
+	high_pos = hash & hashlin->bucket_mask;
+
+	/* if this position is already allocated in the high half */
+	if (pos < hashlin->split) {
+		pos = high_pos;
+	}
+
+	return hashlin_pos(hashlin, pos);
+}
+
+hash_node** hashlin_pos(hashlin* hashlin, unsigned int pos){
+	unsigned int bsr;
+
+	/* get the highest bit set, in case of all 0, return 0 */
+	bsr = ilog2_u32(pos | 1);
+
+	return &hashlin->bucket[bsr][pos];
+}
+
+unsigned int ilog2_u32(unsigned int value){
+    return __builtin_clz(value) ^ 31; /* Khé??? */
 }
 
 void list_insert_tail(hash_node** list, hash_node* node, void* data){
@@ -370,65 +409,4 @@ void* list_remove_existing(hash_node** list, hash_node* node){
 		node->prev->next = node->next;
 
 	return node->data;
-}
-
-unsigned int DNAhash(char* s){
-    /* Pasamos a binario el primer caracter del string */
-    if(strlen(s)>0){
-        unsigned int n;
-        switch(s[0]){
-            case 'G':
-                n=0;
-                break;
-            case 'C':
-                n=1;
-                break;
-            case 'A':
-                n=2;
-                break;
-            case 'T':
-                n=3;
-                break;
-        }
-        n=n<<(2*strlen(s+1));
-        return n + DNAhash(s+1);
-    }
-    else
-        return 0;
-}
-
-hash_node** hashlin_bucket_ref(hashlin* hashlin, unsigned int hash){
-	unsigned int pos;
-	unsigned int high_pos;
-
-	pos = hash & hashlin->low_mask;
-	high_pos = hash & hashlin->bucket_mask;
-
-	/* if this position is already allocated in the high half */
-	if (pos < hashlin->split) {
-		pos = high_pos;
-	}
-
-	unsigned int bsr;
-
-	unsigned int posaux=pos;
-	bsr = 0;
-	while(posaux>0){
-        posaux=posaux>>1;
-        bsr++;
-	}
-
-	return &hashlin->bucket[bsr][pos];
-}
-
-void* hashlin_search(hashlin* hashlin, const void* cmp_arg, unsigned int hash){
-	hash_node* i = *hashlin_bucket_ref(hashlin, hash);
-
-	while (i) {
-		/* we first check if the hash matches, as in the same bucket we may have multiples hash values */
-		if (i->key == hash && cmp_arg == i->data)
-			return i->data;
-		i = i->next;
-	}
-	return 0;
 }
