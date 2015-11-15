@@ -7,10 +7,10 @@
 #include "hash_lineal.h"
 
 int main() {
-  srand48(getpid());
+  srand48(1);
   btree_new(BTREE_FILE);
 
-  int cadenillas = 800;
+  int cadenillas = 13800;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;

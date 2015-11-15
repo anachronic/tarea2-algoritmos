@@ -81,6 +81,7 @@ int last_indice(const char *archivo){
   f = fopen(archivo, "rb");
   fseek(f, 0, SEEK_END);
   size = ftell(f);
+  fclose(f);
 
   return (int)(size - 1)/B;
 }

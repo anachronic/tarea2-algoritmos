@@ -138,17 +138,12 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
   medio = (int) BTREE_ELEMS_NODO / 2;
   indice_elemento_candidato = _encontrar_candidato(b, hijo->elementos[medio]);
 
-  if(indice_elemento_candidato == -1){
-    // Estoy JUSTO haciendo overflow con un elemento que ya ESTÁ!!
-    return;
-  }
-
   // creamos un nuevo nodo hijo.
   nuevo_derecho = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
 
   nuevo_derecho->elementos = (char**)malloc(sizeof(char*) * BTREE_ELEMS_NODO);
   nuevo_derecho->hijos = (int*)malloc(sizeof(int) * (BTREE_ELEMS_NODO + 1));
-  nuevo_derecho->num_elems = BTREE_ELEMS_NODO - medio;
+  nuevo_derecho->num_elems = medio;
   nuevo_derecho->num_hijos = 0; // puede ser que cambie
   nuevo_derecho->indice = last_indice(btree);
 
@@ -240,7 +235,7 @@ static struct btree_nodo *_btree_insertar(const char *btree, const char *cadena,
   _btree_handle_overflow(btree, padre, hijo);
 
   // hasta ahora mi "hijo" no tiene overflow, así que lo guardo en memoria secundaria
-  _volcar_memext(btree, hijo, indice_hijo_candidato);
+  _volcar_memext(btree, hijo, hijo->indice);
 
   // si después de esto yo (el padre) no tengo overflow, también me mando a mí mismo a
   // memoria secundaria y retorno null
