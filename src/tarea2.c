@@ -10,7 +10,7 @@ int main() {
   srand48(1);
   btree_new(BTREE_FILE);
 
-  int cadenillas = 800;
+  int cadenillas = 28800;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;

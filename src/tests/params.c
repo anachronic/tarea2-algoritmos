@@ -5,6 +5,7 @@
 int main(){
   printf("Los siguientes resultados son en BYTES\n\n");
   printf("Tamaño de un int: %i\n", (int) sizeof(int));
+  printf("Tamano de un unsigned int: %i\n", (int) sizeof(unsigned int));
   printf("Tamaño de un char: %i\n", (int) sizeof(char));
   printf("Tamaño de un puntero: %i\n", (int) sizeof(void*));
 
