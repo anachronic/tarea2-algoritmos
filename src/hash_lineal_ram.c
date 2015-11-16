@@ -1,11 +1,9 @@
 #include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include "hash_lineal.h"
 #include "parametros.h"
-#include "extmem.h"
+#include <string.h>
+#include <stdio.h>
 
 #define HASHLIN_STATE_STABLE 0
 #define HASHLIN_STATE_GROW 1
@@ -21,7 +19,7 @@ void hashlin_stable(hashlin* hashlin){
 	hashlin->split = 0;
 }
 
-void hashlin_init(hashlin* hashlin, char* file){
+void hashlin_init(hashlin* hashlin){
 	int i;
 
 	/* fixed initial size */
@@ -36,9 +34,6 @@ void hashlin_init(hashlin* hashlin, char* file){
 	hashlin_stable(hashlin);
 
 	hashlin->count = 0;
-
-    hashlin->next_block=0;
-    hashlin->file=file;
 }
 
 void hashlin_destroy(hashlin* hashlin){
@@ -216,25 +211,16 @@ void hashlin_insert(hashlin* hashlin, void* data){
 
     unsigned int hash=DNAhash((char*)data);
 
-    /* get block where to insert */
-    int block=hashlin->next_b;
-    /* write data in file, in that block */
-    set_bloque(hashlin->file, (char*)data, block, 0);
-	list_insert_tail(hashlin_bucket_ref(hashlin, hash), node);
+	list_insert_tail(hashlin_bucket_ref(hashlin, hash), node, data);
 
 	node->key = hash;
-	/* asign block number to node */
-	node->data_block = block;
 
 	++hashlin->count;
-	/* increase next_b */
-	++hashlin->next_b;
 
 	hashlin_grow_step(hashlin);
 }
 
-/* NO USAR, y si se va a usar, ARREGLAR
-int hashlin_remove_existing(hashlin* hashlin, hash_node* node)
+void* hashlin_remove_existing(hashlin* hashlin, hash_node* node)
 {
 	list_remove_existing(hashlin_bucket_ref(hashlin, node->key), node);
 
@@ -244,17 +230,16 @@ int hashlin_remove_existing(hashlin* hashlin, hash_node* node)
 
 	return node->data;
 }
-*/
 
 /* Se quita a la función de comparación de los argumentos, y se usa solo la igualdad */
-int hashlin_remove(hashlin* hashlin, const void* cmp_arg){
+void* hashlin_remove(hashlin* hashlin, const void* cmp_arg){
     unsigned int hash=DNAhash((char*)cmp_arg);
 	hash_node** let_ptr = hashlin_bucket_ref(hashlin, hash);
 	hash_node* node = *let_ptr;
 
 	while (node) {
 		/* we first check if the hash matches, as in the same bucket we may have multiples hash values */
-		if (node->key == hash) { /* No se compara com cmp_arg, ya que hash identifica únicamente a un string */
+		if (node->key == hash && cmp_arg == node->data) { /* Revisar esta comparación */
 			list_remove_existing(let_ptr, node);
 
 			--hashlin->count;
@@ -266,23 +251,25 @@ int hashlin_remove(hashlin* hashlin, const void* cmp_arg){
 		node = node->next;
 	}
 
-	return -1; /* Por favor chequear esto, pero yo creo que es solo cambiar la API, no es problema */
+	return 0;
 }
 
 void* hashlin_search(hashlin* hashlin, const void* cmp_arg){
     unsigned int hash=DNAhash((char*)cmp_arg);
 	hash_node* i = *hashlin_bucket_ref(hashlin, hash);
-	int block;
 
 	while (i) {
 		/* we first check if the hash matches, as in the same bucket we may have multiples hash values */
-		if (i->key == hash){ /* no es necesario comparar con cmp_arg, el hash solo puede corresponder a un string */
-            block=i->data_block;
-            return recuperar_bloque(hashlin->file, block, 0);
-		}
+		if (i->key == hash && cmp_arg == i->data)
+			return i->data;
 		i = i->next;
 	}
 	return 0;
+}
+
+size_t hashlin_memory_usage(hashlin* hashlin){
+	return hashlin->bucket_max * (size_t)sizeof(hashlin->bucket[0][0])
+	       + hashlin->count * (size_t)sizeof(hash_node);
 }
 
 unsigned int DNAhash(char* s){
@@ -338,13 +325,15 @@ unsigned int ilog2_u32(unsigned int value){
     return __builtin_clz(value) ^ 31; /* Khé??? */
 }
 
-void list_insert_tail(hash_node** list, hash_node* node){
+void list_insert_tail(hash_node** list, hash_node* node, void* data){
 	hash_node* head = *list;
 
 	if (head)
 		list_insert_tail_not_empty(head, node);
 	else
         list_insert_first(list, node);
+
+	node->data = data;
 }
 
 void list_insert_tail_not_empty(hash_node* head, hash_node* node)
@@ -411,7 +400,7 @@ hash_node* list_tail(hash_node** list){
 	return head->prev;
 }
 
-int list_remove_existing(hash_node** list, hash_node* node){
+void* list_remove_existing(hash_node** list, hash_node* node){
 	hash_node* head = list_head(list);
 
 	/* remove from the "circular" prev list */
@@ -426,5 +415,50 @@ int list_remove_existing(hash_node** list, hash_node* node){
 	else
 		node->prev->next = node->next;
 
-	return node->data_block;
+	return node->data;
 }
+
+/*
+char* serializar_nodo_hashlin(hash_node* node){
+
+	/*hash_node** bucket[HASHLIN_BIT_MAX]; /**< Dynamic array of hash buckets. One list for each hash modulus. * /
+
+    char *buffer;
+    int k;
+
+    buffer = (char *) calloc(B, sizeof(char)); // inicializamos todos los bits a 0 (en partic. los elementos).
+
+    memcpy(buffer, &(node->bucket_max), sizeof(int));
+    memcpy(buffer + sizeof(int), &(node->bucket_bit), sizeof(int));
+
+    //buckets D:
+
+
+  // buffer listo
+  return buffer;
+}
+/*
+struct btree_nodo *deserializar_nodo(char *buffer) {
+  struct btree_nodo *nodo;
+  int k;
+
+  nodo = (struct btree_nodo *) malloc(sizeof(struct btree_nodo));
+
+  memcpy(&nodo->num_elems, buffer, sizeof(int));
+  memcpy(&nodo->num_hijos, buffer + sizeof(int), sizeof(int));
+  memcpy(&nodo->indice, buffer + 2* sizeof(int), sizeof(int));
+
+  nodo->elementos = (char **) malloc((BTREE_ELEMS_NODO + 1) * sizeof(char *));
+  for (k = 0; k < nodo->num_elems; k++) {
+    nodo->elementos[k] = (char *) malloc(sizeof(char) * TAMANO_CADENA);
+    memcpy(nodo->elementos[k], buffer + 3 * sizeof(int) + k * TAMANO_CADENA * sizeof(char), TAMANO_CADENA);
+  }
+
+  // finalmente, copiamos los indices de los hijos.
+  nodo->hijos = (int *) malloc(sizeof(int) * (BTREE_ELEMS_NODO + 2));
+  memcpy(nodo->hijos, buffer + 3 * sizeof(int) + BTREE_ELEMS_NODO * TAMANO_CADENA * sizeof(char),
+         sizeof(int) * (BTREE_ELEMS_NODO + 1));
+
+  return nodo;
+}
+*/
