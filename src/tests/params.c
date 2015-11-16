@@ -12,6 +12,9 @@ int main(){
   struct stat fi;
   stat("/", &fi);
   printf("Tamaño del bloque: %li\n", fi.st_blksize);
+  printf("===Otros parámetros\n\n");
+
+  printf("Tamaño del experimento: %i\n", 1<<25);
 
   return 0;
 }
