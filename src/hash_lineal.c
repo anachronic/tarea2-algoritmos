@@ -37,7 +37,7 @@ void hashlin_init(hashlin* hashlin, char* file){
 
 	hashlin->count = 0;
 
-    hashlin->next_block=0;
+    hashlin->next_b=0;
     hashlin->file=file;
 }
 
@@ -261,7 +261,7 @@ int hashlin_remove(hashlin* hashlin, const void* cmp_arg){
 
 			hashlin_shrink_step(hashlin);
 
-			return node->data;
+			return node->data_block;
 		}
 		node = node->next;
 	}

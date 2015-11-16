@@ -42,7 +42,7 @@ typedef struct hashlin_struct {
 void hashlin_init(hashlin* hashlin, char* file);
 void hashlin_destroy(hashlin* hashlin); /** cambiar */
 void hashlin_insert(hashlin* hashlin, void* data); /* cambiado */
-int hashlin_remove(hashlin* hashlin, const void* cmp_arg); /** cambiar */
+int hashlin_remove(hashlin* hashlin, const void* cmp_arg); /* cambiado */
 void* hashlin_search(hashlin* hashlin, const void* cmp_arg); /* cambiado */
 
 /* Función de hash para las cadenas de ADN */

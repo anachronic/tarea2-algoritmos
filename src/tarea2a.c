@@ -5,31 +5,41 @@
 #include "hash_lineal.h"
 
 int main(){
-/*
+    srand48(1);
     hashlin* table=(hashlin*)malloc(sizeof(hashlin));
-    hashlin_init(table);
+    hashlin_init(table, HASHLIN_FILE);
 
-    hashlin_insert(table, "AGT");
-    hashlin_insert(table, "CAG");
-    hashlin_insert(table, "TCG");
+    int cadenillas = 800;
 
-    char* s1=(char*)hashlin_search(table, "CAG");
-    char* s2=(char*)hashlin_search(table, "AGT");
-    char* s3=(char*)hashlin_search(table, "TCG");
-    char* s4=(char*)hashlin_search(table, "AAAAAAA");
-    printf("s1=%s, s2=%s, s3=%s, s4=%s\n", s1, s2, s3, s4);
+    char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
+    int k = 0;
 
-    hashlin_remove(table, "TCG");
+    for(k=0; k<cadenillas; k++){
+        aleatorias[k] = (char*)malloc(sizeof(char)*16);
+        cadena_rand(aleatorias[k]);
 
-    s1=(char*)hashlin_search(table, "CAG");
-    s2=(char*)hashlin_search(table, "AGT");
-    s3=(char*)hashlin_search(table, "TCG");
-    s4=(char*)hashlin_search(table, "AAAAAAA");
-    printf("s1=%s, s2=%s, s3=%s, s4=%s\n", s1, s2, s3, s4);
+        hashlin_insert(table, aleatorias[k]);
+    }
 
-    hashlin_destroy(table);
+    hashlin_remove(table, aleatorias[0]);
+
+    printf("No se debería encontrar %s\n", aleatorias[0]);
+
+    int encontrados=0;
+
+    printf("Buscando %i cadenas. Todas deben ser encontradas\n", cadenillas);
+
+    for(k=0; k<cadenillas; k++){
+        if(strcmp((char*)hashlin_search(table, aleatorias[k]), aleatorias[k]) == 0)
+            encontrados++;
+        else printf("WARNING: No se encontró %s\n", aleatorias[k]);
+    }
+
+    printf("Encontrados %i elementos\n", encontrados);
+
+    for(k=0; k<cadenillas; k++) free(aleatorias[k]);
+
+    free(aleatorias);
 
     return 0;
-*/
-    printf("uint=%d, \n", (int)(sizeof(unsigned int)));
 }
