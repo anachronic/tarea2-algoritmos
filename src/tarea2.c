@@ -14,11 +14,13 @@ int main() {
 
   hashext_new(&h);
 
-  int cadenillas = 4000;
+  int cadenillas = 20000;
+  int eliminar = 19900;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
 
+  printf("Insertando %i cadenas\n", cadenillas);
   for(k=0; k<cadenillas; k++){
     aleatorias[k] = (char*)malloc(sizeof(char)*16);
     cadena_rand(aleatorias[k]);
@@ -29,13 +31,19 @@ int main() {
 
   int encontrados=0;
 
-  printf("Buscando %i cadenas. Todas deben ser encontradas\n", cadenillas);
+  printf("Eliminando %i cadenas\n", eliminar);
+
+  for(k=0; k<eliminar; k++){
+    hashext_eliminar(&h, aleatorias[k]);
+  }
+
+  printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas - eliminar);
 
   for(k=0; k<cadenillas; k++){
 //    if(btree_search(BTREE_FILE, aleatorias[k]) == 1)
     if(hashext_buscar(&h, aleatorias[k]) == 1)
       encontrados++;
-    else printf("WARNING: No se encontró %s\n", aleatorias[k]);
+//    else printf("WARNING: No se encontró %s\n", aleatorias[k]);
   }
 
   printf("Encontrados %i elementos\n", encontrados);

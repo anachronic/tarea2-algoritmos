@@ -2,6 +2,7 @@
 #define TAREA2_ALGORITMOS_HASH_EXTENDIBLE_H
 
 #define NUM_ELEMS_PAGINA 127
+#define NUM_RECOMBINACION ((int)5/7*NUM_ELEMS_PAGINA)
 
 struct hash_extendible {
   struct hash_extendible_p *h;
@@ -35,6 +36,7 @@ total = 4072 bytes por bloques para datos
 void hashext_new(struct hash_extendible *h);
 void hashext_insertar(struct hash_extendible *h, char *key, void *val);
 int hashext_buscar(struct hash_extendible *h, char *key);
+void hashext_eliminar(struct hash_extendible *h, char *key);
 void hashext_dispose(struct hash_extendible *h);
 
 struct hashext_pagina *deserializar_pagina(char *buf);

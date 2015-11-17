@@ -204,6 +204,117 @@ int hashext_buscar(struct hash_extendible *h, char *key){
   return _hashext_buscar(h->h, key, 0);
 }
 
+// retorna 1 si se elimino algun elemento.
+static int _hashext_eliminar_from_pagina(struct hashext_pagina *p, char *key){
+  int k;
+
+  for(k=0; k<p->num_elems; k++){
+    // note que si no está, no hacemos nada.
+    if(strcmp(key, p->hashes[k])==0){
+      // borrar el elemento y realinear los que quedan
+      free(p->hashes[k]);
+      free(p->valores[k]);
+
+      p->num_elems--;
+      if(p->num_elems == 0) return 1;
+      // si quedan, hay que mover los que están a la derecha
+      if(p->num_elems - k > 0) {
+        memmove(p->hashes + k, p->hashes + k + 1, sizeof(char *) * (p->num_elems - k));
+        memmove(p->valores + k, p->valores + k + 1, sizeof(char *) * (p->num_elems - k));
+      }
+
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+static int _is_nodo_interno(struct hash_extendible_p *h){
+  return h->hder != NULL || h->hizq != NULL;
+}
+
+static int _hashext_eliminar(struct hash_extendible_p *h, char *key, int profundidad,
+                             struct hash_extendible *master){
+  unsigned int hashval;
+  struct hashext_pagina *p;
+  struct hash_extendible_p *hijo;
+  int subiendo;
+  int suma;
+
+  if(h->hder == NULL && h->hizq == NULL){
+    // es una hoja, aquí está el valor
+    p = _get_pagina(h->indice_pagina);
+
+    if(_hashext_eliminar_from_pagina(p, key)) h->num_elems--;
+    _volcar_pagina(p, h->indice_pagina);
+    free(p);
+    return 1;
+  }
+
+  hashval = DNAhash(key);
+  // Necesariamente h es un nodo INTERNO. (x lo tanto TIENE 2 hijos).
+  hijo = (hashval >> (profundidad + 1) & 1) ? h->hder : h->hizq;
+
+  subiendo = _hashext_eliminar(hijo, key, profundidad + 1, master);
+  if(subiendo == 0) return 0;
+
+  // No vamos a hacer nada con paginas que quedan con 0 elementos pero su "nodo" hermano es interno.
+  if(_is_nodo_interno(h->hizq) || _is_nodo_interno(h->hder)) return 0;
+  suma = h->hder->num_elems + h->hizq->num_elems;
+
+  if(suma > NUM_RECOMBINACION){
+    // no hacer nada.
+    return 0;
+  }
+
+  // nos toca recombinar las dos páginas en una sola.
+  struct hashext_pagina npag;
+  struct hashext_pagina *pag;
+  char archivo[50];
+
+  npag.num_elems = 0;
+  npag.profundidad = profundidad;
+  npag.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA);
+  npag.valores = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA);
+
+  int k;
+  pag = _get_pagina(h->hder->indice_pagina);
+  for(k=0; k<pag->num_elems; k++){
+    _insertar(&npag, pag->hashes[k], pag->valores[k]);
+  }
+
+  sprintf(archivo, "hashext_nodo%i.data", h->hder->indice_pagina);
+  _dispose_pagina(pag);
+  free(pag);
+  remove(archivo);
+
+  pag = _get_pagina(h->hizq->indice_pagina);
+  for(k=0; k<pag->num_elems; k++){
+    _insertar(&npag, pag->hashes[k], pag->valores[k]);
+  }
+
+  sprintf(archivo, "hashext_nodo%i.data", h->hizq->indice_pagina);
+  _dispose_pagina(pag);
+  free(pag);
+  remove(archivo);
+
+  h->indice_pagina = ++master->max_indice;
+  h->num_elems = npag.num_elems;
+  _volcar_pagina(&npag, h->indice_pagina);
+
+  free(h->hder);
+  free(h->hizq);
+  h->hizq = NULL;
+  h->hder = NULL;
+
+  return 1;
+}
+
+void hashext_eliminar(struct hash_extendible *h, char *key){
+  _hashext_eliminar(h->h, key, 0, h);
+}
+
 char *serializar_pagina(struct hashext_pagina *p){
   int k;
   char *buffer = (char *)calloc(B, sizeof(char));
