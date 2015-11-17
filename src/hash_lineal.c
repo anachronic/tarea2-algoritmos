@@ -39,9 +39,10 @@ static void _volcar_pagina(struct hashlin_pagina *p, int s){
   _dispose_pagina(p);
 }
 
-void hashlin_new(struct hash_lineal *h){
-  h->s = 1;
-  h->buckets = 1;
+void hashlin_new(struct hash_lineal *h, int (*politica)(int)){
+  h->max_buckets = 1;
+  h->num_uckets = 1;
+  h->politica = politica;
   h->paginas = (int*)malloc(sizeof(int));
 
   // al principio el hash esta lleno:

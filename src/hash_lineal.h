@@ -7,9 +7,10 @@
 #define NUM_ELEMS_PAGINA_LIN 127
 
 struct hash_lineal {
-  int s;
-  int buckets;
-  int *paginas;
+  int max_buckets;
+  int num_buckets;
+  int (*politica)(int);
+  int *buckets;
 };
 
 
@@ -28,7 +29,7 @@ struct hashlin_pagina {
   char **values;
 };
 
-void hashlin_new(struct hash_lineal *h, int );
+void hashlin_new(struct hash_lineal *h, int (*politica)(int));
 void hashlin_insertar(struct hash_lineal *h, char *key, char *value);
 int hashlin_buscar(struct hash_lineal *h, char *key);
 void hashlin_eliminar(struct hash_lineal *h, char *key);
