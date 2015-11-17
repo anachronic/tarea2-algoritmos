@@ -14,7 +14,7 @@ int main() {
 
   hashext_new(&h);
 
-  int cadenillas = 20000;
+  int cadenillas = 4000;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;

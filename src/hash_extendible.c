@@ -55,6 +55,12 @@ static void _volcar_pagina(struct hashext_pagina *p, int indice){
 }
 
 static void _insertar(struct hashext_pagina *p, char *key, char *val){
+  int k;
+
+  // adios duplicados!!
+  for(k=0; k<p->num_elems; k++){
+    if(strcmp(key, p->hashes[k])==0) return;
+  }
   p->hashes[p->num_elems] = strdup(key);
   p->valores[p->num_elems] = strdup(val);
 
@@ -86,11 +92,12 @@ static void _hashext_insertar(struct hash_extendible_p *h, char *key, char *valo
   unsigned int bit_hash;
   struct hash_extendible_p *hijo;
   int k;
-  struct hashext_pagina *p = _get_pagina(h->indice_pagina);
+  struct hashext_pagina *p;
+  char archivo[50];
 
   // caso base: h es una hoja
   if(h->hder == NULL && h->hizq == NULL){
-
+    p = _get_pagina(h->indice_pagina);
     if(p->num_elems == NUM_ELEMS_PAGINA){
       // overflow en la pagina!!
       struct hashext_pagina pizq;
@@ -129,13 +136,15 @@ static void _hashext_insertar(struct hash_extendible_p *h, char *key, char *valo
       h->hizq = nuevoizq;
       h->hder = nuevoder;
       h->num_elems = 0;
+      sprintf(archivo, "hashext_nodo%i.data", h->indice_pagina);
 
       _volcar_pagina(&pizq, nuevoizq->indice_pagina);
       _volcar_pagina(&pder, nuevoder->indice_pagina);
 
       _dispose_pagina(p);
       free(p);
-      // TODO: eliminar la pagina del disco???
+
+      remove(archivo);
 
       // volver a llamar a esta misma funcion con los mismos parametros, pero esta vez
       // el nodo ya no es hoja, sino interno.
@@ -156,8 +165,8 @@ static void _hashext_insertar(struct hash_extendible_p *h, char *key, char *valo
   // hashval >> profundidad & 1 vale 1 si el profundidad-esimo bit del hash es 1
   // y 0 de lo contrario
   hijo = (hashval >> (profundidad + 1) & 1) ? h->hder : h->hizq;
-  _dispose_pagina(p);
-  free(p);
+//  _dispose_pagina(p);
+//  free(p);
   _hashext_insertar(hijo, key, valor, profundidad+1, master);
 }
 
