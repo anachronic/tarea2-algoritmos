@@ -168,7 +168,7 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
     // los indices de sus hijos
     nuevo_derecho->num_hijos = nuevo_derecho->num_elems + 1;
     hijo->num_hijos = hijo->num_elems + 1;
-    memcpy(nuevo_derecho->hijos, hijo->hijos + medio, sizeof(int) * (old_elems - medio));
+    memcpy(nuevo_derecho->hijos, hijo->hijos + medio + 1, sizeof(int) * (old_elems - medio + 1));
   }
 
   // mover los hijos que no conciernen con el nuevo elemento insertado.
