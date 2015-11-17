@@ -110,7 +110,7 @@ static void _btree_insertar_elemento(struct btree_nodo *btree, const char *clave
             sizeof(char *) * (btree->num_elems - posicion));
   }
 
-  btree->elementos[posicion] = (char*)malloc(TAMANO_CADENA);
+  btree->elementos[posicion] = (char *) malloc(TAMANO_CADENA);
   strcpy(btree->elementos[posicion], clave);
   btree->num_elems++;
 }
@@ -131,7 +131,6 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
   int k;
   struct btree_nodo *nuevo_derecho;
   char *buf;
-  char *una_cadena;
 
   medio = (int) BTREE_ELEMS_NODO / 2;
   indice_elemento_candidato = _encontrar_candidato(b, hijo->elementos[medio]);
@@ -168,7 +167,11 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
     // los indices de sus hijos
     nuevo_derecho->num_hijos = nuevo_derecho->num_elems + 1;
     hijo->num_hijos = hijo->num_elems + 1;
-    memcpy(nuevo_derecho->hijos, hijo->hijos + medio + 1, sizeof(int) * (old_elems - medio + 1));
+    if (old_elems - medio + 1 > 0) {
+      int offset = 0;
+      if(nuevo_derecho->num_hijos % 2 == 0) offset = 1;
+      memcpy(nuevo_derecho->hijos, hijo->hijos + medio + 1, sizeof(int) * (old_elems - medio + offset));
+    }
   }
 
   // mover los hijos que no conciernen con el nuevo elemento insertado.
