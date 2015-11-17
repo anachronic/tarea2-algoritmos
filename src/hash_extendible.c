@@ -228,8 +228,6 @@ char *serializar_pagina(struct hashext_pagina *p){
 }
 
 static void _hashext_dispose(struct hash_extendible_p *h){
-  int k;
-
   if(h==NULL) return;
 
   _hashext_dispose(h->hizq);
