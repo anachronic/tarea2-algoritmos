@@ -1,10 +1,11 @@
 #ifndef TAREA2_ALGORITMOS_HASH_EXTENDIBLE_H
 #define TAREA2_ALGORITMOS_HASH_EXTENDIBLE_H
 
-#define NUM_ELEMS_PAGINA 204
+#define NUM_ELEMS_PAGINA 127
 
 struct hash_extendible {
   struct hash_extendible_p *h;
+  int max_indice;
 };
 
 /* este es el "trie" */
@@ -17,22 +18,23 @@ struct hash_extendible_p {
 
 struct hashext_pagina {
   int num_elems;
-  unsigned int *hashes;
+  int profundidad;
+  char **hashes;
   char **valores;
 };
 
 /*
-Estructura en memoria secundaria
-4 bytes del indice de la pagina
-4 bytes de la cantidad de elementos en la pagina
-4080 bytes correspondientes a 204 pares de 20 bytes (hash, valor)
-total = 4088 bytes por bloques para datos
+Estructura en memoria secundaria de una pagina
+4 bytes que indican el numero de elementos
+4 bytes que indican la profundidad de la pagina (en el trie)
+4064 bytes correspondientes a 127 pares de 20 bytes (key, valor)
+total = 4072 bytes por bloques para datos
 */
 
 
 void hashext_new(struct hash_extendible *h);
 void hashext_insertar(struct hash_extendible *h, char *key, void *val);
-int hashext_buscar(struct hash_extendible *h, const char *key);
+int hashext_buscar(struct hash_extendible *h, char *key);
 void hashext_dispose(struct hash_extendible *h);
 
 struct hashext_pagina *deserializar_pagina(char *buf);
