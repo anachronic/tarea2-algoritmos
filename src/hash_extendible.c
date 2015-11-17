@@ -162,11 +162,7 @@ static void _hashext_insertar(struct hash_extendible_p *h, char *key, char *valo
   // estoy en un nodo interno
   hashval = DNAhash(key);
 
-  // hashval >> profundidad & 1 vale 1 si el profundidad-esimo bit del hash es 1
-  // y 0 de lo contrario
   hijo = (hashval >> (profundidad + 1) & 1) ? h->hder : h->hizq;
-//  _dispose_pagina(p);
-//  free(p);
   _hashext_insertar(hijo, key, valor, profundidad+1, master);
 }
 
