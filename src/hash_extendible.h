@@ -28,7 +28,7 @@ struct hashext_pagina {
 Estructura en memoria secundaria de una pagina
 4 bytes que indican el numero de elementos
 4 bytes que indican la profundidad de la pagina (en el trie)
-4064 bytes correspondientes a 127 pares de 20 bytes (key, valor)
+4064 bytes correspondientes a 127 pares de 32 bytes (key, valor)
 total = 4072 bytes por bloques para datos
 */
 
