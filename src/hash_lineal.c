@@ -197,6 +197,7 @@ void _rehash_bucket(struct hash_lineal *h, int bucket, int bucket_nuevo){
     free(p);
   }
 
+  // le restamos al total "lo que reinsertamos"
   h->num_elems -= total;
 }
 
@@ -214,7 +215,7 @@ void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
 
   if(h->politica == NULL) return; // la politica nula es nunca expandir.
 
-  if(h->politica(h->num_elems, 2*h->s) == 0){
+  if(h->politica(h->num_elems, 2*h->s) <= 0){
     // no toca expandir
     return;
   }
@@ -228,6 +229,112 @@ void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
   h->num_buckets++;
   if(h->num_buckets == 2*h->s){
     h->s = 2*h->s;
+  }
+}
+
+static int _eliminar_from_pagina(struct hash_lineal *h, struct hashlin_pagina *p, char *key){
+  int k;
+
+  for(k=0; k<p->num_elems; k++){
+    if(strcmp(key, p->hashes[k])==0){
+      free(p->hashes[k]);
+      free(p->values[k]);
+
+      p->num_elems--;
+      h->num_elems--;
+
+      if(p->num_elems == 0) return 1;
+
+      //si quedan elemens, shift a la izq a esos elems
+      if(p->num_elems - k > 0){
+        memmove(p->hashes + k, p->hashes + k + 1, sizeof(char *) * (p->num_elems - k));
+        memmove(p->values + k, p->values + k + 1, sizeof(char *) * (p->num_elems - k));
+      }
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+// elimina el par (K,V) asociado a key en el bucket si es que existe
+static void _eliminar_bucket(struct hash_lineal *h, char *key, int bucket){
+  struct hashlin_pagina *p;
+  char archivo[64];
+  int borrado;
+  int k;
+
+  borrado = 0;
+
+  for(k=0; 1; k++){
+    sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, k);
+
+    if(access(archivo, F_OK)==0){
+      p = _get_pagina(bucket, k);
+
+      borrado = _eliminar_from_pagina(h, p, key);
+      if(borrado){
+        _volcar_pagina(p, bucket);
+        free(p);
+        break;
+      } else {
+        _dispose_pagina(p);
+        free(p);
+      }
+    }
+  }
+}
+
+static void _contraer(struct hash_lineal *h, int bucket_viejo, int bucket_nuevo){
+  int k, j;
+  int total;
+  char *buf;
+  char archivo[64];
+  struct hashlin_pagina *p;
+
+  total = 0;
+
+  for(k=0; 1; k++){
+    sprintf(archivo, "hashlin_nodo%i-%i.data", bucket_viejo, k);
+
+    if(access(archivo, F_OK) != 0) break;
+
+    buf = recuperar_bloque(archivo, 0, 0);
+    p = deserializar_pagina_lin(buf);
+    free(buf);
+
+    total += p->num_elems;
+
+    for(j=0; j<p->num_elems; j++){
+      _insertar_bucket(h, p->hashes[j], p->values[j], bucket_nuevo);
+    }
+
+    remove(archivo);
+    _dispose_pagina(p);
+  }
+
+  // le restamos al total "lo que reinsertamos"
+  h->num_elems -= total;
+}
+
+void hashlin_eliminar(struct hash_lineal *h, char *key){
+  unsigned int hashval;
+  int bucket;
+
+  hashval = DNAhash(key);
+  bucket = (int)hashval % h->s;
+  if(bucket < h->num_buckets % h->s) bucket = (int)hashval % (2*h->s);
+
+  _eliminar_bucket(h, key, bucket);
+
+  if(h->politica == NULL) return; // politica nula = nunca contraer.
+
+  if(h->politica(h->num_elems, h->num_buckets) >= 0) return; // No nos toca contraer
+
+  h->num_buckets--;
+  _contraer(h, h->num_buckets, h->num_buckets - h->s);
+  if(h->num_buckets == h->s){
+    h->s = h->s/2;
   }
 }
 

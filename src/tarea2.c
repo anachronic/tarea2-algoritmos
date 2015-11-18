@@ -45,13 +45,14 @@ int main(int argc, char **argv) {
 
   int encontrados=0;
 
-//  printf("Eliminando %i cadenas\n", eliminar);
-//
-//  for(k=0; k<eliminar; k++){
-//    hashext_eliminar(&h, aleatorias[k]);
-//  }
+  printf("Eliminando %i cadenas\n", eliminar);
 
-  printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas /*- eliminar*/);
+  for(k=0; k<eliminar; k++){
+//    hashext_eliminar(&h, aleatorias[k]);
+    hashlin_eliminar(&h, aleatorias[k]);
+  }
+
+  printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas - eliminar);
 
   for(k=0; k<cadenillas; k++){
 //    if(btree_search(BTREE_FILE, aleatorias[k]) == 1)

@@ -10,6 +10,9 @@ struct hash_lineal {
   int num_elems;
   int num_buckets;
   int s; // la "mitad" de max_buckets.
+  // esta funcion debe retornar 0 si no se debe hacer nada
+  //  1 si hay que expandir
+  // -1 si hay que contraer
   int (*politica)(int,int);
 };
 
