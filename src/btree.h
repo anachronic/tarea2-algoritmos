@@ -37,7 +37,7 @@ typedef struct btree_nodo {
 
 void btree_new(char *archivo);
 
-//retorna bool
+// diremos que *btree SOLO TIENE LA RAIZ.
 int btree_search(const char *btree, const char *cadena);
 void btree_eliminar(const char *btree, const char *cadena);
 void btree_insertar(const char *btree, const char *cadena);
