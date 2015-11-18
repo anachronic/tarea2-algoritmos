@@ -9,12 +9,12 @@
 
 int main() {
   srand48(1);
-//  btree_new(BTREE_FILE);
-  struct hash_extendible h;
+  btree_new(BTREE_FILE);
+//  struct hash_extendible h;
+//
+//  hashext_new(&h);
 
-  hashext_new(&h);
-
-  int cadenillas = 20000;
+  int cadenillas = 28000;
   int eliminar = 19900;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
@@ -25,23 +25,23 @@ int main() {
     aleatorias[k] = (char*)malloc(sizeof(char)*16);
     cadena_rand(aleatorias[k]);
 
-//    btree_insertar(BTREE_FILE, aleatorias[k]);
-    hashext_insertar(&h, aleatorias[k], aleatorias[k]);
+    btree_insertar(BTREE_FILE, aleatorias[k]);
+//    hashext_insertar(&h, aleatorias[k], aleatorias[k]);
   }
 
   int encontrados=0;
 
-  printf("Eliminando %i cadenas\n", eliminar);
+//  printf("Eliminando %i cadenas\n", eliminar);
+//
+//  for(k=0; k<eliminar; k++){
+//    hashext_eliminar(&h, aleatorias[k]);
+//  }
 
-  for(k=0; k<eliminar; k++){
-    hashext_eliminar(&h, aleatorias[k]);
-  }
-
-  printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas - eliminar);
+  printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas);
 
   for(k=0; k<cadenillas; k++){
-//    if(btree_search(BTREE_FILE, aleatorias[k]) == 1)
-    if(hashext_buscar(&h, aleatorias[k]) == 1)
+    if(btree_search(BTREE_FILE, aleatorias[k]) == 1)
+//    if(hashext_buscar(&h, aleatorias[k]) == 1)
       encontrados++;
 //    else printf("WARNING: No se encontró %s\n", aleatorias[k]);
   }
@@ -51,7 +51,7 @@ int main() {
   for(k=0; k<cadenillas; k++) free(aleatorias[k]);
 
   free(aleatorias);
-  hashext_dispose(&h);
+//  hashext_dispose(&h);
 
   return 0;
 }
