@@ -53,13 +53,11 @@ static struct hashlin_pagina *_get_pagina(int bucket, int index){
   return p;
 }
 
-void hashlin_new(struct hash_lineal *h, int (*politica)(int)){
-  h->nivel = 0;
-  h->inicial = 2;
-  h->step = 0;
+void hashlin_new(struct hash_lineal *h, int (*politica)(int,int)){
+  h->num_buckets = 1;
+  h->s = 1;
   h->politica = politica;
   h->num_elems = 0;
-  h->next_bucket = 1;
 
   struct hashlin_pagina p;
   p.num_elems = 0;
@@ -150,18 +148,52 @@ static void _insertar_bucket(struct hash_lineal *h, char *key, char *value, int 
   free(p);
 }
 
-static void _rehash_bucket(struct hash_lineal *h, struct hashlin_pagina *npag){
+static void _expandir(struct hash_lineal *h, int bucket_viejo, int bucket_nuevo){
   struct hashlin_pagina *vpag;
-  int bucket;
   int k;
 
-  bucket = h->step;
+  struct hashlin_pagina pizq;
+  pizq.num_elems = 0;
+  pizq.list_index = 0;
+  pizq.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+  pizq.values = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
 
-  vpag = _get_pagina(bucket, 0);
+  struct hashlin_pagina pder;
+  pder.num_elems = 0;
+  pder.list_index = 0;
+  pder.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+  pder.values = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+
+  vpag = _get_pagina(bucket_viejo, 0);
+  unsigned int rehash;
 
   for(k=0; k<vpag->num_elems; k++){
-    printf("%u\n", DNAhash(vpag->hashes[k]) % (h->inicial << (h->nivel )));
+    rehash = DNAhash(vpag->hashes[k]) % 2*h->s;
+    if(rehash == bucket_viejo){
+      _insertar_pagina(&pizq, vpag->hashes[k], vpag->values[k]);
+    } else if (rehash == bucket_nuevo) {
+      _insertar_pagina(&pder, vpag->hashes[k], vpag->values[k]);
+    } else {
+      fprintf(stderr, "Error: hashes no calzan.\n");
+    }
   }
+
+  _dispose_pagina(vpag);
+  free(vpag);
+
+  char pagina_vieja[50];
+
+  k=0;
+
+  while(1){
+    sprintf(pagina_vieja, "hashlin_nodo%i-%i.data", bucket_viejo, k++);
+    if(access(pagina_vieja, F_OK) != 0) break;
+
+    remove(pagina_vieja);
+  }
+
+  _volcar_pagina(&pizq, bucket_viejo);
+  _volcar_pagina(&pder, bucket_nuevo);
 }
 
 void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
@@ -173,35 +205,27 @@ void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
   // De Wikipedia: https://en.wikipedia.org/wiki/Linear_hashing
   // h->inicial << h->nivel
   // corresponde a la expresion N * 2^L
-  bucket = (int)hashval % (h->inicial << h->nivel);
-  if(bucket < h->step) bucket = (int) hashval % (h->inicial << (h->nivel + 1));
+  bucket = (int)hashval % h->s;
+  if(bucket < h->num_buckets % h->s) bucket = (int) hashval % (2*h->s);
 
   _insertar_bucket(h, key, value, bucket);
 
   if(h->politica == NULL) return; // la politica nula es nunca expandir.
 
-  if(h->politica(h->num_elems) == 0){
+  if(h->politica(h->num_elems, 2*h->s) == 0){
     // no toca expandir
     return;
   }
 
   //hay que expandir!
-  bucket = h->next_bucket++;
-
-  struct hashlin_pagina npag;
-  npag.num_elems = 0;
-  npag.list_index = 0;
-  npag.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
-  npag.values = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+  int bucket_nuevo = h->num_buckets;
 
   // se supone que h->step apunta al bucket a dividir.
+  _expandir(h, bucket, bucket_nuevo);
 
-  _rehash_bucket(h, &npag);
-
-  h->step++;
-  if(h->step == (h->inicial << h->nivel)){
-    h->step = 0;
-    h->nivel++;
+  h->num_buckets++;
+  if(h->num_buckets == 2*h->s){
+    h->s = 2*h->s;
   }
 }
 
@@ -232,8 +256,8 @@ int hashlin_buscar(struct hash_lineal *h, char *key){
 
   hashval = DNAhash(key);
 
-  bucket = (int)hashval % (h->inicial << h->nivel);
-  if(bucket < h->step) bucket = (int) hashval % (h->inicial << (h->nivel + 1));
+  bucket = (int)hashval % h->s;
+  if(bucket < h->num_buckets % h->s) bucket = (int) hashval % (2*h->s);
   return _buscar_bucket(key, bucket);
 }
 

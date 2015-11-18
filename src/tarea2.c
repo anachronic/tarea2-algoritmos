@@ -7,8 +7,8 @@
 #include "hash_lineal.h"
 #include "hash_extendible.h"
 
-int politica1(int n){
-  if(n>5) return 1;
+int politica1(int num_elems, int num_buckets){
+  if(num_elems > (int)num_buckets*NUM_ELEMS_PAGINA_LIN/2) return 1;
   return 0;
 }
 
@@ -20,7 +20,7 @@ int main() {
   struct hash_lineal h;
   hashlin_new(&h, politica1);
 
-  int cadenillas = 8;
+  int cadenillas = 200;
   int eliminar = 19900;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);

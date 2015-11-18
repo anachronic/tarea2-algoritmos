@@ -8,11 +8,9 @@
 
 struct hash_lineal {
   int num_elems;
-  int inicial;
-  int nivel;
-  int step;
-  int next_bucket;
-  int (*politica)(int);
+  int num_buckets;
+  int s; // la "mitad" de max_buckets.
+  int (*politica)(int,int);
 };
 
 
@@ -31,7 +29,7 @@ struct hashlin_pagina {
   char **values;
 };
 
-void hashlin_new(struct hash_lineal *h, int (*politica)(int));
+void hashlin_new(struct hash_lineal *h, int (*politica)(int,int));
 void hashlin_insertar(struct hash_lineal *h, char *key, char *value);
 int hashlin_buscar(struct hash_lineal *h, char *key);
 void hashlin_eliminar(struct hash_lineal *h, char *key);
