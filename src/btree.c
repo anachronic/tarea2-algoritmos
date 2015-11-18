@@ -595,12 +595,13 @@ static void _btree_borrar_llave(struct btree_nodo* nodo, int k){
   free(nodo->elementos[k]);
   //Si es hoja, achicamos arreglo, si no, subimos elemento más a la derecha de hijo[k]
   if(nodo->num_hijos<=0){
-    char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
-    memmove(achicado, nodo->elementos, TAMANO_CADENA*k);
-		memmove(achicado+k, nodo->elementos+k+1, TAMANO_CADENA*(nodo->num_elems-k-1));
-    printf("%s\n", nodo->elementos[0]);
-    free(nodo->elementos);
-    nodo->elementos=achicado;
+//    char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
+//    memmove(achicado, nodo->elementos, TAMANO_CADENA*k);
+    if(nodo->num_elems-k-1 > 0) {
+      memmove(nodo->elementos + k, nodo->elementos + k + 1, sizeof(char*) * (nodo->num_elems - k - 1));
+    }
+//    free(nodo->elementos);
+//    nodo->elementos=achicado;
     nodo->num_elems--;
   }
   else{
@@ -609,7 +610,7 @@ static void _btree_borrar_llave(struct btree_nodo* nodo, int k){
     //free(hijo_s);
     struct btree_nodo* hijo=_get_nodo(nodo->hijos[k]);
     char* llave=hijo->elementos[hijo->num_elems-1];
-    nodo->elementos[k]=llave;
+    nodo->elementos[k]=strdup(llave);
     _btree_borrar_llave(hijo, hijo->num_elems-1);
     btree_nodo_dispose(hijo);
   }
@@ -649,13 +650,8 @@ static btree* _btree_borrar(const char *cadena, int indice){
   if(k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) == 0){ //Encontramos elemento
     //borrar
     _btree_borrar_llave(nodo, k);
-    if(nodo->num_elems < BTREE_ELEMS_NODO/2){
-      return nodo;
-    }
-    else{
-      btree_nodo_dispose(nodo);
-      return NULL;
-    }
+    if(nodo->num_elems < BTREE_ELEMS_NODO/2) return nodo;
+    else return NULL;
   }
   else{
     if(nodo->num_hijos <= 0){ //No está :c
