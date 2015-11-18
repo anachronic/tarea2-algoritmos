@@ -41,6 +41,7 @@ void btree_new(char *archivo);
 int btree_search(const char *btree, const char *cadena);
 void btree_eliminar(const char *btree, const char *cadena);
 void btree_insertar(const char *btree, const char *cadena);
+void btree_borrar(const char *btree, const char *cadena);
 void btree_dispose(const char *archivo);
 
 void btree_nodo_dispose(struct btree_nodo *b);
