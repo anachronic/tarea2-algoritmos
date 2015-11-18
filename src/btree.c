@@ -99,11 +99,9 @@ static struct btree_nodo *_get_nodo(int indice){
 
 
 static int _btree_search(const char *cadena, int indice) {
-  char *serializado;
   struct btree_nodo *nodo;
   int k;
   int indice_hijo;
-  char arch_hijo[64];
 
   if (indice == -1) {
     return 0; // NOT FOUND
@@ -172,7 +170,6 @@ static void _btree_handle_overflow(const char *btree, struct btree_nodo *b, stru
   int indice_elemento_candidato;
   int k;
   struct btree_nodo *nuevo_derecho;
-  char *buf;
 
   medio = (int) BTREE_ELEMS_NODO / 2;
   indice_elemento_candidato = _encontrar_candidato(b, hijo->elementos[medio]);
@@ -238,7 +235,6 @@ static struct btree_nodo *_btree_insertar(const char *btree, const char *cadena,
   int indice_elemento;
   struct btree_nodo *hijo;
   struct btree_nodo *padre; // el nodo-esimo nodo en btree.
-  char *buf;
 
   padre = _get_nodo(nodo);
 
@@ -298,7 +294,6 @@ void btree_insertar(const char *btree, const char *cadena) {
   struct btree_nodo *nodo;
   struct btree_nodo *hijo;
   char *clave;
-  char *buffer;
 
   raiz = _get_raiz(btree);
   // Caso base: B-Tree vacío.
