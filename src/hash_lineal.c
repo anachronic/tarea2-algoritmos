@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "hash_lineal.h"
 #include "parametros.h"
 #include "cadenas.h"
+#include "extmem.h"
 
 
 
@@ -20,17 +22,16 @@ static void _dispose_pagina(struct hashlin_pagina *p){
   if(p->values != NULL) free(p->values);
 }
 
-static void _volcar_pagina(struct hashlin_pagina *p, int s){
+static void _volcar_pagina(struct hashlin_pagina *p, int bucket){
   char archivo[64];
   char *buf;
   FILE *f;
 
-  
-  buf = serializar_pagina(p);
-  
-  sprintf(archivo, "hashlin_nodo%i-%i.data", s, p->list_index);
+  buf = serializar_pagina_lin(p);
+
+  sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, p->list_index);
   f = fopen(archivo, "wb");
-  
+
   fwrite(buf, sizeof(char), B, f);
   fflush(f);
   fclose(f);
@@ -39,25 +40,149 @@ static void _volcar_pagina(struct hashlin_pagina *p, int s){
   _dispose_pagina(p);
 }
 
+static struct hashlin_pagina *_get_pagina(int bucket, int index){
+  struct hashlin_pagina *p;
+  char archivo[64];
+  char *buf;
+
+  sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, index);
+
+  buf = recuperar_bloque(archivo, 0, 0);
+  p = deserializar_pagina_lin(buf);
+  free(buf);
+  return p;
+}
+
 void hashlin_new(struct hash_lineal *h, int (*politica)(int)){
-  h->max_buckets = 1;
-  h->num_uckets = 1;
+  h->max_buckets = 2;
+  h->num_buckets = 1;
   h->politica = politica;
-  h->paginas = (int*)malloc(sizeof(int));
+  h->num_elems = 0;
 
-  // al principio el hash esta lleno:
-  // h->paginas SIEMPRE tiene tamano s
+  struct hashlin_pagina p;
+  p.num_elems = 0;
+  p.list_index = 0;
+  p.hashes = NULL;
+  p.values = NULL;
+
+  _volcar_pagina(&p, 0);
 }
 
-static void _insertar_indice(struct hashlin_pagina *p, char *key, char *value, int indice){
+
+// retorna 0 si key existe en la pagina.
+static int _check_exists(struct hashlin_pagina *p, char *key){
   int k;
+
+  for (k=0; k<p->num_elems; k++){
+    if(strcmp(key, p->hashes[k])==0) return 1;
+  }
+  return 0;
 }
 
 
+static int _insertar_pagina(struct hashlin_pagina *p, char *key, char *value){
+  int k;
+
+  for (k=0; k<p->num_elems; k++){
+    if(strcmp(key, p->hashes[k])==0) return 0;
+  }
+
+  p->hashes[k] = strdup(key);
+  p->values[k] = strdup(value);
+  p->num_elems++;
+  return 1;
+}
 
 
+/*
+ * Inserta el par (K,V) en un bucket donde un bucket corresponde a una lista
+ * de páginas que se corresponden sólo por nombre. Retorna 1 si se inserta, 0 si no.
+ */
+static void _insertar_bucket(struct hash_lineal *h, char *key, char *value, int bucket){
+  struct hashlin_pagina *p;
+  char archivo[64];
+  int k;
+
+  p = NULL;
+
+  // asumimos que el bucket existe.
+  // encontramos la pagina que pueda albergar el par (K,V)
+  for(k=0; 1; k++){
+    sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, k);
+
+    if(access(archivo, F_OK)==0){ // EXISTE
+      p = _get_pagina(bucket, k);
+
+      if(_check_exists(p, key)){
+        // el elemento YA EXISTE
+        _dispose_pagina(p);
+        free(p);
+        return;
+      }
+
+      if(p->num_elems >= NUM_ELEMS_PAGINA_LIN){
+        // no me sirve esta pagina :(
+        _dispose_pagina(p);
+        free(p);
+        continue;
+      } else break;
+    } else {
+      p = NULL;
+      break;
+    }
+  }
+
+  if(p==NULL){
+    p = (struct hashlin_pagina *)malloc(sizeof(struct hashlin_pagina));
+    p->num_elems = 0;
+    p->list_index = k;
+    p->hashes = (char**)malloc(sizeof(char*) * NUM_ELEMS_PAGINA_LIN);
+    p->values = (char**)malloc(sizeof(char*) * NUM_ELEMS_PAGINA_LIN);
+  }
+
+  if(_insertar_pagina(p, key, value)==1){
+    h->num_elems++;
+  }
+
+  _volcar_pagina(p, bucket);
+  free(p);
+}
+
+void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
+  // TODO: Falta la política de expansión.
+  unsigned int hashval;
+
+  hashval = DNAhash(key);
+  _insertar_bucket(h, key, value, (int)hashval % h->num_buckets);
+}
 
 
+static int _buscar_bucket(char *key, int bucket){
+  struct hashlin_pagina *p;
+  char archivo[64];
+  int k;
+  int existe = 0;
+
+  for(k=0; 1; k++){
+    sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, k);
+
+    if(access(archivo, F_OK) == -1) return 0;
+    p = _get_pagina(bucket, k);
+    existe = _check_exists(p, key);
+
+    _dispose_pagina(p);
+    free(p);
+
+    if(existe) return 1;
+  }
+}
+
+int hashlin_buscar(struct hash_lineal *h, char *key){
+  unsigned int hashval;
+
+  hashval = DNAhash(key);
+  return _buscar_bucket(key, (int)hashval % h->num_buckets);
+}
 
 
 
@@ -72,7 +197,7 @@ struct hashlin_pagina *deserializar_pagina_lin(char *buf){
   p = (struct hashlin_pagina *)calloc(1, sizeof(struct hashlin_pagina));
   memcpy(&p->num_elems, buf, sizeof(int));
   memcpy(&p->list_index, buf + sizeof(int), sizeof(int));
-  
+
   p->hashes = (char**)malloc(NUM_ELEMS_PAGINA_LIN * sizeof(char *));
   p->values = (char**)malloc(NUM_ELEMS_PAGINA_LIN * sizeof(char *));
 

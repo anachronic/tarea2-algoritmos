@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "cadenas.h"
 #include "parametros.h"

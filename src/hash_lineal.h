@@ -7,10 +7,10 @@
 #define NUM_ELEMS_PAGINA_LIN 127
 
 struct hash_lineal {
+  int num_elems;
   int max_buckets;
   int num_buckets;
   int (*politica)(int);
-  int *buckets;
 };
 
 

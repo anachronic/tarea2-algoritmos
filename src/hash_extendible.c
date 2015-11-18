@@ -6,7 +6,7 @@
 #include "hash_lineal.h" // para la funcion de hash
 #include "parametros.h"
 #include "extmem.h"
-
+#include "cadenas.h"
 
 
 static struct hashext_pagina *_get_pagina(int indice){
