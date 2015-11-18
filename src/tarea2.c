@@ -15,9 +15,9 @@ int main() {
 //  hashext_new(&h);
 
   //int cadenillas = 28000;
-  int cadenillas = 30000;
+  int cadenillas = 3000;
   //int eliminar = 19900;
-  int eliminar = 10000;
+  int eliminar = 1000;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
@@ -36,7 +36,6 @@ int main() {
   printf("Eliminando %i cadenas\n", eliminar);
 
   for(k=0; k<eliminar; k++){
-    printf("holi %d\n", k);
     btree_borrar(BTREE_FILE, aleatorias[k]);
   }
 
