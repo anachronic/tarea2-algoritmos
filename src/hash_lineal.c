@@ -54,10 +54,12 @@ static struct hashlin_pagina *_get_pagina(int bucket, int index){
 }
 
 void hashlin_new(struct hash_lineal *h, int (*politica)(int)){
-  h->max_buckets = 2;
-  h->num_buckets = 1;
+  h->nivel = 0;
+  h->inicial = 2;
+  h->step = 0;
   h->politica = politica;
   h->num_elems = 0;
+  h->next_bucket = 1;
 
   struct hashlin_pagina p;
   p.num_elems = 0;
@@ -148,12 +150,59 @@ static void _insertar_bucket(struct hash_lineal *h, char *key, char *value, int 
   free(p);
 }
 
+static void _rehash_bucket(struct hash_lineal *h, struct hashlin_pagina *npag){
+  struct hashlin_pagina *vpag;
+  int bucket;
+  int k;
+
+  bucket = h->step;
+
+  vpag = _get_pagina(bucket, 0);
+
+  for(k=0; k<vpag->num_elems; k++){
+    printf("%u\n", DNAhash(vpag->hashes[k]) % (h->inicial << (h->nivel )));
+  }
+}
+
 void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
-  // TODO: Falta la política de expansión.
   unsigned int hashval;
+  int bucket;
 
   hashval = DNAhash(key);
-  _insertar_bucket(h, key, value, (int)hashval % h->num_buckets);
+
+  // De Wikipedia: https://en.wikipedia.org/wiki/Linear_hashing
+  // h->inicial << h->nivel
+  // corresponde a la expresion N * 2^L
+  bucket = (int)hashval % (h->inicial << h->nivel);
+  if(bucket < h->step) bucket = (int) hashval % (h->inicial << (h->nivel + 1));
+
+  _insertar_bucket(h, key, value, bucket);
+
+  if(h->politica == NULL) return; // la politica nula es nunca expandir.
+
+  if(h->politica(h->num_elems) == 0){
+    // no toca expandir
+    return;
+  }
+
+  //hay que expandir!
+  bucket = h->next_bucket++;
+
+  struct hashlin_pagina npag;
+  npag.num_elems = 0;
+  npag.list_index = 0;
+  npag.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+  npag.values = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+
+  // se supone que h->step apunta al bucket a dividir.
+
+  _rehash_bucket(h, &npag);
+
+  h->step++;
+  if(h->step == (h->inicial << h->nivel)){
+    h->step = 0;
+    h->nivel++;
+  }
 }
 
 
@@ -179,9 +228,13 @@ static int _buscar_bucket(char *key, int bucket){
 
 int hashlin_buscar(struct hash_lineal *h, char *key){
   unsigned int hashval;
+  int bucket;
 
   hashval = DNAhash(key);
-  return _buscar_bucket(key, (int)hashval % h->num_buckets);
+
+  bucket = (int)hashval % (h->inicial << h->nivel);
+  if(bucket < h->step) bucket = (int) hashval % (h->inicial << (h->nivel + 1));
+  return _buscar_bucket(key, bucket);
 }
 
 

@@ -7,15 +7,20 @@
 #include "hash_lineal.h"
 #include "hash_extendible.h"
 
+int politica1(int n){
+  if(n>5) return 1;
+  return 0;
+}
+
 int main() {
   srand48(1);
 //  btree_new(BTREE_FILE);
 //  struct hash_extendible h;
 //  hashext_new(&h);
   struct hash_lineal h;
-  hashlin_new(&h, NULL);
+  hashlin_new(&h, politica1);
 
-  int cadenillas = 127;
+  int cadenillas = 8;
   int eliminar = 19900;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);

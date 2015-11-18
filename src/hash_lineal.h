@@ -8,8 +8,10 @@
 
 struct hash_lineal {
   int num_elems;
-  int max_buckets;
-  int num_buckets;
+  int inicial;
+  int nivel;
+  int step;
+  int next_bucket;
   int (*politica)(int);
 };
 
