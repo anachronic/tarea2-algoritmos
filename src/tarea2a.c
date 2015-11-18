@@ -140,8 +140,7 @@ int main(){
 
 		char* holi1=(char*)malloc(sizeof(char)*5);
 		char* holi2=(char*)malloc(sizeof(char)*5);
-		holi1="holas";
-		memmove(holi1, holi1+1, sizeof(char)*3);
-		//free(holi1);
-		printf("%s\n", holi1);
+		holi1="holasas";
+		free(holi1);
+		//printf("%s\n", holi1);
 }

@@ -36,7 +36,7 @@ int main() {
   printf("Eliminando %i cadenas\n", eliminar);
 
   for(k=0; k<eliminar; k++){
-    printf("Eliminando %i\n", k);
+    printf("Eliminando %i=%s\n", k, aleatorias[k]);
     btree_borrar(BTREE_FILE, aleatorias[k]);
   }
 

@@ -304,6 +304,7 @@ void btree_insertar(const char *btree, const char *cadena) {
     nodo->num_elems = 1;
     nodo->indice = 0;
     nodo->elementos = (char **) malloc(sizeof(char *) * BTREE_ELEMS_NODO);
+    printf("Tamaño inicial=%ld\n", sizeof(char *) * BTREE_ELEMS_NODO);
     nodo->elementos[0] = clave;
     nodo->hijos = (int *) malloc(sizeof(int) * (BTREE_ELEMS_NODO + 1));
 
