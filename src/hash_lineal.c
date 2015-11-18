@@ -148,53 +148,58 @@ static void _insertar_bucket(struct hash_lineal *h, char *key, char *value, int 
   free(p);
 }
 
-static void _expandir(struct hash_lineal *h, int bucket_viejo, int bucket_nuevo){
-  struct hashlin_pagina *vpag;
-  int k;
+void _rehash_bucket(struct hash_lineal *h, int bucket, int bucket_nuevo){
+  int k, i, j;
+  int total;
+  char archivo_viejo[64];
+  char archivo_nuevo[64];
 
-  struct hashlin_pagina pizq;
-  pizq.num_elems = 0;
-  pizq.list_index = 0;
-  pizq.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
-  pizq.values = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
 
-  struct hashlin_pagina pder;
-  pder.num_elems = 0;
-  pder.list_index = 0;
-  pder.hashes = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
-  pder.values = (char**)malloc(sizeof(char*)*NUM_ELEMS_PAGINA_LIN);
+  for(k=0; 1; k++){
+    sprintf(archivo_viejo, "hashlin_nodo%i-%i.data", bucket, k);
 
-  vpag = _get_pagina(bucket_viejo, 0);
+    if(access(archivo_viejo, F_OK)==0){
+      sprintf(archivo_nuevo, "hashlin_temp%i.data", k);
+      rename(archivo_viejo, archivo_nuevo);
+    } else break;
+  }
+
+  // ahora me toca rehashear.
+  total = 0;
+  struct hashlin_pagina *p;
+  char *buf;
   unsigned int rehash;
 
-  for(k=0; k<vpag->num_elems; k++){
-    rehash = DNAhash(vpag->hashes[k]) % 2*h->s;
-    if(rehash == bucket_viejo){
-      _insertar_pagina(&pizq, vpag->hashes[k], vpag->values[k]);
-    } else if (rehash == bucket_nuevo) {
-      _insertar_pagina(&pder, vpag->hashes[k], vpag->values[k]);
-    } else {
-      fprintf(stderr, "Error: hashes no calzan.\n");
+  for(i=0; i<k; i++) {
+    sprintf(archivo_viejo, "hashlin_temp%i.data", i);
+
+    buf = recuperar_bloque(archivo_viejo, 0, 0);
+    p = deserializar_pagina_lin(buf);
+    free(buf);
+
+    total += p->num_elems;
+
+    for(j=0; j<p->num_elems; j++){
+      rehash = DNAhash(p->hashes[j]) % (2*h->s);
+      if(rehash == bucket){
+        // dejarlo en el bucket que ya estaba
+        _insertar_bucket(h, p->hashes[j], p->values[j], bucket);
+      } else if(rehash == bucket_nuevo){
+        // dejarlo en el nuevo bucket
+        _insertar_bucket(h, p->hashes[j], p->values[j], bucket_nuevo);
+      } else {
+        printf("Hashes esperados\t%u\t%u\t\tObtenido:%u\n", bucket, bucket_nuevo, rehash);
+      }
     }
+
+    remove(archivo_viejo);
+    _dispose_pagina(p);
+    free(p);
   }
 
-  _dispose_pagina(vpag);
-  free(vpag);
-
-  char pagina_vieja[50];
-
-  k=0;
-
-  while(1){
-    sprintf(pagina_vieja, "hashlin_nodo%i-%i.data", bucket_viejo, k++);
-    if(access(pagina_vieja, F_OK) != 0) break;
-
-    remove(pagina_vieja);
-  }
-
-  _volcar_pagina(&pizq, bucket_viejo);
-  _volcar_pagina(&pder, bucket_nuevo);
+  h->num_elems -= total;
 }
+
 
 void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
   unsigned int hashval;
@@ -202,9 +207,6 @@ void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
 
   hashval = DNAhash(key);
 
-  // De Wikipedia: https://en.wikipedia.org/wiki/Linear_hashing
-  // h->inicial << h->nivel
-  // corresponde a la expresion N * 2^L
   bucket = (int)hashval % h->s;
   if(bucket < h->num_buckets % h->s) bucket = (int) hashval % (2*h->s);
 
@@ -221,7 +223,7 @@ void hashlin_insertar(struct hash_lineal *h, char *key, char *value){
   int bucket_nuevo = h->num_buckets;
 
   // se supone que h->step apunta al bucket a dividir.
-  _expandir(h, bucket, bucket_nuevo);
+  _rehash_bucket(h, h->num_buckets - h->s, bucket_nuevo);
 
   h->num_buckets++;
   if(h->num_buckets == 2*h->s){

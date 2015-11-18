@@ -12,15 +12,22 @@ int politica1(int num_elems, int num_buckets){
   return 0;
 }
 
-int main() {
+int politicatest(int a, int b){
+  if(a>5) return 1;
+  return 0;
+}
+
+int main(int argc, char **argv) {
   srand48(1);
+
+  system("rm *.data");
 //  btree_new(BTREE_FILE);
 //  struct hash_extendible h;
 //  hashext_new(&h);
   struct hash_lineal h;
   hashlin_new(&h, politica1);
 
-  int cadenillas = 200;
+  int cadenillas = atoi(argv[1]);
   int eliminar = 19900;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
