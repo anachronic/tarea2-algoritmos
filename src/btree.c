@@ -550,7 +550,7 @@ static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, stru
   sprintf(archivo, "btree_nodo%i.data", right->indice);
   remove(archivo);
 
-  btree_nodo_dispose(right);
+  //btree_nodo_dispose(right);
 }
 
 static void _btree_handle_underflow(struct btree_nodo *padre, struct btree_nodo *hijo){
