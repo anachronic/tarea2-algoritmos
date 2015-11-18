@@ -17,7 +17,7 @@ int main() {
   //int cadenillas = 28000;
   int cadenillas = 111;
   //int eliminar = 19900;
-  int eliminar = 50;
+  int eliminar = 1;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
