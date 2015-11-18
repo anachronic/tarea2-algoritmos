@@ -382,22 +382,204 @@ void btree_nodo_dispose(struct btree_nodo *b) {
   free(b);
 }
 
+/*
+borrar(btree, cadena, indice){
+  nodo=get_bloque(indice);
+  buscar en llaves de nodo;
+  if(lo encontramos en llaves){
+    borrar indice;
+    merge;
+  }
+  else{
+    if(es hoja)
+      no está :c
+    else
+      borrar(btree, cadena, indice_hijo);
+  }
+}
 
+manejar_underflow(btree, indice){
+  nodo=get_bloque(indice);
+  if(nodo es hoja){
+    borrar nodo;
+    memmove archivo;
+    padre.tirrarLlaveAHijo(nodo->indice); (también chequea si se produce overflow en hijo, y underflow en padre)
+  }
+  else{
+    shiftLR o shiftRL
+  }
+}
 
+merge(){
+  if(es nodo interno){
+    poner llave más a la derecha de hijo[k], o llave más a la izquierda de hijo[k+1]
+    merge(hijo[k] o hijo[k+1]);
+  }
+  else{
+    manejar_underflow;
+  }
+}
+*/
 
+static void _btree_merge(const char* btree, struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int k){
+  //Sacamos llave de arreglo y lo achicamos
+  char* llave=padre->elementos[k];
+  char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
+  memmove(achicado, padre->elementos, TAMANO_CADENA*k);
+  memmove(achicado+k, padre->elementos+k+1, TAMANO_CADENA*(padre->num_elems-k-1));
+  free(padre->elementos);
+  padre->elementos=achicado;
+  padre->num_elems--;
 
+  //Mergear
+  left->elementos[left->num_elems]=llave;
+  memmove(left->elementos + 1 + left->num_elems, right->elementos, TAMANO_CADENA*right->num_elems);
+  //Achicar arreglo de hijos
+  int* achicado2=(int*)malloc(sizeof(int)*BTREE_ELEMS_NODO+1);
+  memmove(achicado2, padre->hijos, sizeof(int)*(k+1));
+  memmove(achicado2+k+1, padre->hijos+k+2, TAMANO_CADENA*(padre->num_elems-k-2));
+  free(padre->hijos);
+  padre->hijos=achicado2;
+  padre->num_hijos--;
 
+  //Sobreescribir nodos en archivo
+  char* serializado=serializar_nodo(padre);
+  set_bloque(btree, serializado, padre->indice, sizeof(int));
+  free(serializado);
 
+  char* serializado=serializar_nodo(left);
+  set_bloque(btree, serializado, left->indice, sizeof(int));
+  free(serializado);
 
+  char* serializado=serializar_nodo(right);
+  set_bloque(btree, serializado, right->indice, sizeof(int));
+  free(serializado);
 
+  //Borrar hijo en archivo: borrar archivo, no actualizo índices :D
 
+  //Liberar nodos
+  free(padre);
+  free(left);
+  free(right);
+}
 
+static void _btree_handle_underflow(const char *btree, struct btree_nodo *padre, struct btree_nodo *hijo){
+  //Están nodos escritos en disco
+  //Solo arreglo un nivel del underflow, el padre del padre eventualmente verá si el padre quedó con underflow
+  int k;
+  char* aux_s;
+  struct btree_nodo* aux;
 
+  for(k=0; k<padre->num_hijos; k++){
+    if(padre->hijos[k]==hijo->indice) break;
+  }
+  if(k==num_hijos-1){ //Último hijo, usar hijo a la izquierda
+    aux_s = recuperar_bloque(btree, padre->hijos[k-1], sizeof(int));
+    aux = deserializar_nodo(aux_s);
+    free(aux_s);
+    //Decidir si uso shiftLR o merge
+    if(aux->num_elems == BTREE_ELEMS_NODO/2)
+      _btree_merge(btree, padre, aux, hijo, k-1);
+    else
+      _btree_shiftRL(btree, padre, hijo, aux, k);
+  }
+  else{ //Usar hijo a la derecha
+    aux_s = recuperar_bloque(btree, padre->hijos[k+1], sizeof(int));
+    aux = deserializar_nodo(aux_s);
+    free(aux_s);
+    //Decidir si uso shiftLR o merge
+    if(aux->num_elems == BTREE_ELEMS_NODO/2)
+      _btree_merge(btree, padre, hijo, aux, k);
+    else
+      _btree_shiftLR(btree, padre, hijo, aux, k);
+  }
+  btree_nodo_dispose(aux);
+}
 
+static void _btree_borrar_llave(const char* btree, struct btree_nodo* nodo, int k){
+  //Borrar llave
+  free(nodo->elementos[k]);
+  //Si es hoja, achicamos arreglo, si no, subimos elemento más a la derecha de hijo[k]
+  if(nodo->num_hijos<=0){
+    char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
+    memmove(achicado, nodo->elementos, TAMANO_CADENA*k);
+		memmove(achicado+k, nodo->elementos+k+1, TAMANO_CADENA*(nodo->num_elems-k-1));
+    free(nodo->elementos);
+    nodo->elementos=achicado;
+    nodo->num_elems--;
+  }
+  else{
+    char* hijo_s = recuperar_bloque(btree, nodo_hijos[k], sizeof(int));
+    struct btree_nodo* hijo = deserializar_nodo(hijo_s);
+    free(hijo_s);
+    char* llave=hijo->elementos[hijo->num_elems-1];
+    nodo->elementos[k]=llave;
+    _btree_borrar_llave(btree, hijo, hijo->num_elems-1);
+    btree_nodo_dispose(hijo);
+  }
 
+  //Escribir en btree
+  char* serializado=serializar_nodo(nodo);
+  set_bloque(btree, serializado, nodo->indice, sizeof(int));
+  free(serializado);
 
+  //Chequear underflow
+  /*if(nodo->num_elems < BTREE_ELEMS_NODO/2){
+    _btree_handle_underflow(const char *btree, struct btree_nodo *b, struct btree_nodo *hijo)
+  }*/
+}
 
+static btree* _btree_borrar(const char *btree, const char *cadena, int indice){
+  char* serializado;
+  struct btree_nodo* nodo;
+  int k;
+  int indice_hijo;
 
+  if(indice == -1){
+    return NULL;
+  }
 
+  serializado = recuperar_bloque(btree, indice, sizeof(int));
+  nodo = deserializar_nodo(serializado);
+  free(serializado);
 
+  k = 0;
+  while (k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) > 0) k++;
 
+  if(k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) == 0){ //Encontramos elemento
+    //borrar
+    _btree_borrar_llave(btree, nodo, k);
+    if(nodo->num_elems < BTREE_ELEMS_NODO/2){
+      return nodo;
+    }
+    else{
+      btree_nodo_dispose(nodo);
+      return NULL;
+    }
+  }
+  else{
+    if(nodo->num_hijos <= 0){ //No está :c
+      btree_nodo_dispose(nodo);
+      return NULL;
+    }
+    else{ //Buscar en hijo[k]
+      indice_hijo = nodo->hijos[k];
+      btree_nodo_dispose(nodo);
+      btree_nodo* nodo_underflow = _btree_borrar(btree, cadena, indice_hijo);
+      if(nodo_underflow!=NULL){ //Hay underflow :c
+        _btree_handle_underflow(btree, nodo, nodo_underflow);
+        //btree_nodo_dispose(nodo_underflow);
+      }
+    }
+  }
+}
+
+void btree_borrar(const char *btree, const char *cadena){
+  int raiz = _get_raiz(btree);
+
+  if(raiz < 0){
+    return;
+  }
+
+  _btree_borrar(btree, cadena, raiz);
+}
