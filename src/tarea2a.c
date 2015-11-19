@@ -139,8 +139,9 @@ int main(){
 		*/
 
 		char* holi1=(char*)malloc(sizeof(char)*5);
+		sprintf(holi1, "holas");
 		char* holi2=(char*)malloc(sizeof(char)*5);
-		holi1="holasas";
+		memmove(holi2, holi1, 5);
 		free(holi1);
-		//printf("%s\n", holi1);
+		printf("%s\n", holi2);
 }

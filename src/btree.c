@@ -452,7 +452,7 @@ static void _btree_shiftRL(struct btree_nodo* padre, struct btree_nodo* right, s
   //Ponemos llave de padre al principio en arreglo de right
   char* llave_padre=padre->elementos[k-1];
   right->elementos[right->num_elems]=(char*)malloc(sizeof(char)*TAMANO_CADENA);
-  memmove(right->elementos+1, right->elementos, sizeof(char*)*right->num_elems); //***REVISAR***
+  memmove(right->elementos+1, right->elementos, sizeof(char*)*right->num_elems);
   right->elementos[0]=llave_padre;
   right->num_elems++;
   //Ponemos última llave de arreglo de left en padre
@@ -468,7 +468,7 @@ static void _btree_shiftRL(struct btree_nodo* padre, struct btree_nodo* right, s
   left->elementos[left->num_elems-1]=0;
   left->num_elems--;
   //Achicamos left->hijos
-  left->hijos[left->num_hijos-1]=0;
+  left->hijos[left->num_hijos - 1]=-1;
   left->num_hijos--;
 
   _volcar_memext(padre, padre->indice);
