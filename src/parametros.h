@@ -7,6 +7,6 @@
 #define TAMANO_CADENA 16
 
 //otras constantes
-#define NUMERO_AUREO (1.618)
+#define NUMERO_AUREO 1.618
 
 #endif //TAREA2_ALGORITMOS_PARAMETROS_H

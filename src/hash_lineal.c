@@ -281,7 +281,7 @@ static void _eliminar_bucket(struct hash_lineal *h, char *key, int bucket){
         _dispose_pagina(p);
         free(p);
       }
-    }
+    } else break;
   }
 }
 
@@ -293,8 +293,10 @@ static void _contraer(struct hash_lineal *h, int bucket_viejo, int bucket_nuevo)
   struct hashlin_pagina *p;
 
   total = 0;
+  strcpy(archivo, "");
 
   for(k=0; 1; k++){
+    if(strcmp(archivo, "")!=0) remove(archivo);
     sprintf(archivo, "hashlin_nodo%i-%i.data", bucket_viejo, k);
 
     if(access(archivo, F_OK) != 0) break;
@@ -309,8 +311,8 @@ static void _contraer(struct hash_lineal *h, int bucket_viejo, int bucket_nuevo)
       _insertar_bucket(h, p->hashes[j], p->values[j], bucket_nuevo);
     }
 
-    remove(archivo);
     _dispose_pagina(p);
+    free(p);
   }
 
   // le restamos al total "lo que reinsertamos"
@@ -328,14 +330,15 @@ void hashlin_eliminar(struct hash_lineal *h, char *key){
   _eliminar_bucket(h, key, bucket);
 
   if(h->politica == NULL) return; // politica nula = nunca contraer.
-
   if(h->politica(h->num_elems, h->num_buckets) >= 0) return; // No nos toca contraer
 
-  h->num_buckets--;
-  _contraer(h, h->num_buckets, h->num_buckets - h->s);
+  if(h->num_buckets == 1) return; //no puedo contraer...
+
   if(h->num_buckets == h->s){
     h->s = h->s/2;
   }
+  h->num_buckets--;
+  _contraer(h, h->num_buckets, h->num_buckets - h->s);
 }
 
 

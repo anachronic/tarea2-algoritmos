@@ -6,14 +6,18 @@
 #include "cadenas.h"
 #include "hash_lineal.h"
 #include "hash_extendible.h"
+#include "parametros.h"
+#include "extmem.h"
 
 int politica1(int num_elems, int num_buckets){
-  if(num_elems > (int)num_buckets*NUM_ELEMS_PAGINA_LIN/2) return 1;
+  if(1.0*num_elems/num_buckets > 1.5*NUM_ELEMS_PAGINA_LIN) return 1;
+  if(1.0*num_elems/num_buckets < 0.83*NUM_ELEMS_PAGINA_LIN) return -1;
   return 0;
 }
 
 int politicatest(int a, int b){
-  if(a>5) return 1;
+  if(a==160) return 1;
+  if(a > 175) return -1;
   return 0;
 }
 
@@ -28,7 +32,7 @@ int main(int argc, char **argv) {
   hashlin_new(&h, politica1);
 
   int cadenillas = atoi(argv[1]);
-  int eliminar = 19900;
+  int eliminar = atoi(argv[2]);
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
@@ -59,7 +63,9 @@ int main(int argc, char **argv) {
 //    if(hashext_buscar(&h, aleatorias[k]) == 1)
     if(hashlin_buscar(&h, aleatorias[k])==1)
       encontrados++;
-//    else printf("WARNING: No se encontró %s\n", aleatorias[k]);
+    else{
+      if(k >= eliminar) printf("WARNING: No se encontró %s\n", aleatorias[k]);
+    }
   }
 
   printf("Encontrados %i elementos\n", encontrados);
