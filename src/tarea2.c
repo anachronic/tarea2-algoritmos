@@ -14,10 +14,10 @@ int main() {
 //
 //  hashext_new(&h);
 
-  //int cadenillas = 28000;
-  int cadenillas = 3000;
-  //int eliminar = 19900;
-  int eliminar = 1000;
+//  int cadenillas = 28000;
+  int cadenillas = 205;
+//  int eliminar = 19900;
+  int eliminar = 204;
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;

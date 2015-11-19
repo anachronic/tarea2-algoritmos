@@ -448,238 +448,270 @@ merge(){
 }
 */
 
-static void _btree_shiftRL(struct btree_nodo* padre, struct btree_nodo* right, struct btree_nodo* left, int k){
-  //Ponemos llave de padre al principio en arreglo de right
-  char* llave_padre=padre->elementos[k-1];
-  right->elementos[right->num_elems]=(char*)malloc(sizeof(char)*TAMANO_CADENA);
-  memmove(right->elementos+1, right->elementos, sizeof(char*)*right->num_elems);
-  right->elementos[0]=llave_padre;
-  right->num_elems++;
-  //Ponemos última llave de arreglo de left en padre
-  char* llave_left=left->elementos[left->num_elems-1];
-  padre->elementos[k]=llave_left;
-  //Ponemos último hijo de left como primer hijo de right (si es que existe)
-  if(left->num_hijos>0){
-    memmove(right->hijos+1, right->hijos, sizeof(int)*right->num_hijos);
-    right->hijos[0]=left->hijos[left->num_hijos-1];
-    right->num_hijos++;
+static btree *_check_underflow(btree *nodo){
+  if(nodo->num_elems >= (int)BTREE_ELEMS_NODO/2){
+    _volcar_memext(nodo, nodo->indice);
+    return NULL;
   }
-  //Achicamos left->elementos
-  left->elementos[left->num_elems-1]=0;
-  left->num_elems--;
-  //Achicamos left->hijos
-  left->hijos[left->num_hijos - 1]=-1;
-  left->num_hijos--;
 
-  _volcar_memext(padre, padre->indice);
-  _volcar_memext(left, left->indice);
-  _volcar_memext(right, right->indice);
+  // si tengo overflow, me tienen que ayudar
+  return nodo;
 }
 
-static void _btree_shiftLR(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int k){
-  //Ponemos llave de padre al final en arreglo de left
-  char* llave_padre=padre->elementos[k];
-  left->elementos[left->num_elems]=llave_padre;
-  left->num_elems++;
-  //Ponemos primera llave de arreglo de right en padre
-  char* llave_right=right->elementos[0];
-  padre->elementos[k]=llave_right;
-  //Ponemos primer hijo de right como último hijo de left (si es que existe)
-  if(right->num_hijos>0){
-    left->hijos[left->num_hijos]=right->hijos[0];
-    left->num_hijos++;
-  }
-  //Achicamos right->elementos
-  //char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
-  if(right->num_elems-1 > 0)
-    memmove(right->elementos, right->elementos+1, sizeof(char*)*(right->num_elems-1));
-  //free(right->elementos);
-  //right->elementos=achicado;
+// Hacemos una "rotación" en sentido antihorario de los elementos. ie: right pasa su menor a padre, y padre pasa su
+// indice-esimo a la derecha de left.
+static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo* right, struct btree_nodo* left, int indice){
+  char *oldkey;
+
+  // ver _btree_shiftHorario para los comentarios, es lo mismo pero hacia el otro lado
+  // almacenamos la antigua key del padre
+  oldkey = strdup(padre->elementos[indice]);
+  free(padre->elementos[indice]);
+
+  // ponemos el + a la izq. de right en el padre y shifteamos los elems de right.
+  padre->elementos[indice] = strdup(right->elementos[0]);
+  free(right->elementos[0]);
+  memmove(right->elementos, right->elementos + 1, sizeof(char*)*(right->num_elems-1));
   right->num_elems--;
-  //Achicamos right->hijos
-  //int* achicado2=(int*)malloc(sizeof(int)*BTREE_ELEMS_NODO+1);
-  if(right->num_hijos-1 > 0)
-    memmove(right->hijos, right->hijos+1, sizeof(int)*(right->num_hijos-1));
-  //free(right->hijos);
-  //right->hijos=achicado2;
+
+  // en left va la key antigua ya duplicada
+  left->elementos[left->num_elems] = oldkey;
+  left->num_elems++;
+
+  // pasamos el primer hijo de right al ultimo hijo de left.
+  left->hijos[left->num_hijos] = right->hijos[0];
+  left->num_hijos++;
+
+  // los hijos de right están desfasados, los arreglamos
+  memmove(right->hijos, right->hijos + 1, sizeof(int)*(right->num_hijos-1));
   right->num_hijos--;
 
-  _volcar_memext(padre, padre->indice);
+  // left y right no tienen overflow
   _volcar_memext(left, left->indice);
   _volcar_memext(right, right->indice);
 }
 
-static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int k){
-  //Sacamos llave de arreglo y lo achicamos
-  char* llave=padre->elementos[k];
-  //char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
-  //memmove(achicado, padre->elementos, TAMANO_CADENA*k);
-  if(padre->num_elems-k-1 > 0)
-    memmove(padre->elementos+k, padre->elementos+k+1, sizeof(char*)*(padre->num_elems-k-1));
-  //free(padre->elementos);
-  //padre->elementos=achicado;
-  padre->num_elems--;
 
-  //Mergear
-  left->elementos[left->num_elems]=(char*)malloc(sizeof(char)*TAMANO_CADENA);
-  int i;
-  for(i=left->num_elems+1; i<left->num_elems+1+right->num_elems; i++){
-    left->elementos[i]=(char*)malloc(sizeof(char)*TAMANO_CADENA);
+// Hacemos una "rotación" en sentido horario de los elementos. ie: left pasa su mayor a padre, y padre pasa su indice-esimo
+// a la izquierda de right.
+static void _btree_shiftHorario(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice) {
+  char *oldkey;
+
+  // nos piteamos la llave del padre SIN HACER SHIFT DE LOS ELEMENTOS
+  oldkey = strdup(padre->elementos[indice]);
+  free(padre->elementos[indice]);
+
+  // tomamos el derecho de left y lo pasamos al padre. left queda con un elemento menos.
+  padre->elementos[indice] = strdup(left->elementos[left->num_elems-1]);
+  left->num_elems--;
+
+  // todavía existe el elem en left. como lo duplicamos hay que borrarlo.
+  free(left->elementos[left->num_elems]);
+
+  // el antiguo indice-esimo del padre ahora es el más a la izquierda de right
+  memmove(right->elementos + 1, right->elementos, sizeof(char*)*right->num_elems);
+  right->elementos[0] = oldkey; // ya está duplicada..
+  right->num_elems++;
+
+  // ahora veamos los hijos
+  // el último hijo de left ahora es el primero de right
+  memmove(right->hijos + 1, right->hijos, sizeof(int)*right->num_hijos);
+  right->hijos[0] = left->hijos[left->num_hijos-1];
+
+  // left tiene un hijo menos y right tiene un hijo más.
+  left->num_hijos--;
+  right->num_hijos++;
+
+  // finalmente, left y right no pueden tener underflow.
+  _volcar_memext(left, left->indice);
+  _volcar_memext(right, right->indice);
+}
+
+// merge: tanto left o right quedarian con menos de B/2 elementos si hacemos un shift, de manera que
+// metemos left, right y el indice-esimo del padre dentro de un nuevo y le decimos baibai a lo que había antes.
+static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice){
+  char *oldkey;
+  char archivo[64];
+  int i_derecho;
+  int k;
+
+  // primero, chao con el indice-esimo del padre
+  oldkey = strdup(padre->elementos[indice]);
+  free(padre->elementos[indice]);
+
+  // dejaremos todo en left
+  // copiamos el elem del padre en left.
+  left->elementos[left->num_elems] = oldkey;
+  left->num_elems++;
+
+  // copiamos todos los elementos de right
+  for(k=0; k<right->num_elems; k++){
+    left->elementos[left->num_elems + k] = strdup(right->elementos[k]);
   }
-  left->elementos[left->num_elems]=llave;
-  memmove(left->elementos + 1 + left->num_elems, right->elementos, sizeof(char*)*right->num_elems);
-  left->num_elems=left->num_elems+1+right->num_elems;
-  //Achicar arreglo de hijos
-  //int* achicado2=(int*)malloc(sizeof(int)*BTREE_ELEMS_NODO+1);
-  //memmove(achicado2, padre->hijos, sizeof(int)*(k+1));
-  if(padre->num_hijos-k-2 > 0)
-    memmove(padre->hijos+k+1, padre->hijos+k+2, sizeof(int)*(padre->num_hijos-k-2));
-  //free(padre->hijos);
-  //padre->hijos=achicado2;
+
+  // actualizamos el numero de elementos de left.
+  left->num_elems += right->num_elems;
+
+  // ahora copiamos todos los hijos de right a la derecha de left
+  memcpy(left->hijos + left->num_hijos, right->hijos, sizeof(int)*right->num_hijos);
+  left->num_hijos += right->num_hijos;
+
+  // el nodo nuevo está listo. hacemos shift de los elementos del padre.
+  if(padre->num_elems - indice - 1 > 0)
+    memmove(padre->elementos + indice, padre->elementos + indice + 1, sizeof(char*)*(padre->num_elems - indice - 1));
+
+
+  // shift de los hijos tb. OJO con la cant. de hijos que movemos xq no está en términos de padre->num_hijos
+  if(padre->num_elems - indice - 1 > 0)
+    memmove(padre->hijos + indice + 1, padre->hijos + indice + 2, sizeof(int)*(padre->num_elems - indice - 1));
+
+  // no nos olvidemos que el padre tiene 1 elem y 1 hijo menos.
+  padre->num_elems--;
   padre->num_hijos--;
 
-  //Sobreescribir nodos en archivo
-  //char* serializado=serializar_nodo(padre);
-  //set_bloque(btree, serializado, padre->indice, sizeof(int));
-  //free(serializado);
-  _volcar_memext(padre, padre->indice);
+  // el hijo derecho ya no corre (xD)
+  i_derecho = right->indice;
+  btree_nodo_dispose(right);
+
+  // y sería el famoso merge. ahora volcamos left en memoria
   _volcar_memext(left, left->indice);
 
-  //Borrar hijo derecho en archivo: borrar archivo, no actualizo índices :D
-  char archivo[64];
-  sprintf(archivo, "btree_nodo%i.data", right->indice);
+  // no nos olvidemos de borrar el nodo derecho
+  sprintf(archivo, "btree_nodo%i.data", i_derecho);
   remove(archivo);
-
-  //btree_nodo_dispose(right);
 }
 
-static void _btree_handle_underflow(struct btree_nodo *padre, struct btree_nodo *hijo){
-  //Están nodos escritos en disco
-  //Solo arreglo un nivel del underflow, el padre del padre eventualmente verá si el padre quedó con underflow
-  int k;
-  struct btree_nodo* aux;
-
-  for(k=0; k<padre->num_hijos; k++){
-    if(padre->hijos[k]==hijo->indice) break;
-  }
-  if(k==padre->num_hijos-1){ //Último hijo, usar hijo a la izquierda
-    //aux_s = recuperar_bloque(btree, padre->hijos[k-1], sizeof(int));
-    //aux = deserializar_nodo(aux_s);
-    //free(aux_s);
-    aux=_get_nodo(padre->hijos[k-1]);
-    //Decidir si uso shiftLR o merge
-    if(aux->num_elems == BTREE_ELEMS_NODO/2)
-      _btree_merge(padre, aux, hijo, k-1);
-    else
-      _btree_shiftRL(padre, hijo, aux, k);
-  }
-  else{ //Usar hijo a la derecha
-    //aux_s = recuperar_bloque(btree, padre->hijos[k+1], sizeof(int));
-    ///aux = deserializar_nodo(aux_s);
-    //free(aux_s);
-    aux=_get_nodo(padre->hijos[k+1]);
-    //Decidir si uso shiftLR o merge
-    if(aux->num_elems == BTREE_ELEMS_NODO/2){
-      _btree_merge(padre, hijo, aux, k);
-    }
-    else{
-      _btree_shiftLR(padre, hijo, aux, k);
-    }
-  }
-}
-
-static void _btree_borrar_llave(struct btree_nodo* nodo, int k){
-  //Borrar llave
-  //Si es hoja, achicamos arreglo, si no, subimos elemento más a la derecha de hijo[k]
-  if(nodo->num_hijos<=0){
-    free(nodo->elementos[k]); //Probar sacando esto
-//    char** achicado=(char**)malloc(sizeof(char*)*BTREE_ELEMS_NODO);
-//    memmove(achicado, nodo->elementos, TAMANO_CADENA*k);
-    if(nodo->num_elems-k-1 > 0) {
-      memmove(nodo->elementos + k, nodo->elementos + k + 1, sizeof(char*) * (nodo->num_elems - k - 1));
-    }
-//    free(nodo->elementos);
-//    nodo->elementos=achicado;
-    nodo->num_elems--;
-  }
-  else{
-    //char* hijo_s = recuperar_bloque(btree, nodo_hijos[k], sizeof(int));
-    //struct btree_nodo* hijo = deserializar_nodo(hijo_s);
-    //free(hijo_s);
-    struct btree_nodo* hijo=_get_nodo(nodo->hijos[k]);
-    char* llave=hijo->elementos[hijo->num_elems-1];
-    nodo->elementos[k]=strdup(llave);
-    _btree_borrar_llave(hijo, hijo->num_elems-1);
-  }
-
-  //Escribir en btree
-  //char* serializado=serializar_nodo(nodo);
-  //set_bloque(btree, serializado, nodo->indice, sizeof(int));
-  //free(serializado);
-  _volcar_memext(nodo, nodo->indice);
-
-  //Chequear underflow
-  /*if(nodo->num_elems < BTREE_ELEMS_NODO/2){
-    _btree_handle_underflow(const char *btree, struct btree_nodo *b, struct btree_nodo *hijo)
-  }*/
-}
-
-static btree* _btree_borrar(const char *cadena, int indice){
+static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave){
   //char* serializado;
   struct btree_nodo* nodo;
+  struct btree_nodo *hijo;
+  struct btree_nodo *hermano;
   int k;
-  int indice_hijo;
+  int indice_hermano;
 
   if(indice == -1){
     return NULL;
   }
 
-  //serializado = recuperar_bloque(btree, indice, sizeof(int));
-  //nodo = deserializar_nodo(serializado);
-  //free(serializado);
+  hijo = NULL;
   nodo=_get_nodo(indice);
-  int num_elems=nodo->num_elems;
-  int num_hijos=nodo->num_hijos;
 
+  // parte de BAJADA
+  // decido por donde bajar (ie: si me están pidiendo "borrow" o si simplemente estoy
+  // tratando de encontrar el elemento
+  // borrow es siempre k=0
   k = 0;
+
   while (k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) > 0) k++;
 
-  if(k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) == 0){ //Encontramos elemento
-    //borrar
-    _btree_borrar_llave(nodo, k);
-    if(num_elems < BTREE_ELEMS_NODO/2) return _get_nodo(indice);
-    else return NULL;
-  }
-  else{
-    if(nodo->num_hijos <= 0){ //No está :c
+  if(k < nodo->num_elems && strcmp(cadena, nodo->elementos[k]) == 0){
+    // este es el nodo donde lo pillé
+
+    // si está en este nodo, borro el elemento siempre
+    free(nodo->elementos[k]);
+
+    // si este nodo es hoja, ya borré el elemento, me shifteo y calculo si tengo underflow
+    // retorno NULL si no tengo o bien mi mismo nodo si sí tengo overflow.
+    if(nodo->num_hijos == 0){
+      if(nodo->num_elems - k - 1 >  0) {
+        memmove(nodo->elementos + k, nodo->elementos + k + 1, sizeof(char *) * (nodo->num_elems - k - 1));
+        nodo->num_elems--;
+      }
+
+      // si no tengo overflow, gg
+      return _check_underflow(nodo);
+    }
+
+    // si soy nodo interno y mi elem está aquí pido el más chico del árbol derecho
+    // para insertarlo donde había borrado.
+    nodo->elementos[k] = (char*)malloc(TAMANO_CADENA);
+
+    // cuando llegue a la hoja SIEMPRE me voy a dar cuenta que el elem no está
+    // y la hoja que se debe seguir me pasa el elemento.
+    hijo = _btree_borrar(cadena, nodo->hijos[k+1], nodo->elementos[k]);
+
+  } else {
+    // el elemento NO ESTÁ
+
+    // si soy hoja y me están pidiendo borrow, lo paso, calculo underflow y etc...
+    if(nodo->num_hijos == 0 && insertar_llave != NULL){
+      //si me están pidiendo que pase mi ele más chico lo paso
+      strcpy(insertar_llave, nodo->elementos[0]);
+      if(nodo->num_elems - 1 >  0) {
+        memmove(nodo->elementos, nodo->elementos + 1, sizeof(char *) * (nodo->num_elems - 1));
+        nodo->num_elems--;
+      }
+
+      return _check_underflow(nodo);
+    }
+
+    // si soy raiz pero no me están pidiendo borrow, nada que hacer, el elemento no está no más.
+    if(nodo->num_hijos==0) {
       btree_nodo_dispose(nodo);
       return NULL;
     }
-    else{ //Buscar en hijo[k]
-      indice_hijo = nodo->hijos[k];
-      //btree_nodo_dispose(nodo);
-      struct btree_nodo* nodo_underflow = _btree_borrar(cadena, indice_hijo);
-      if(nodo_underflow!=NULL){ //Hay underflow :c
-        _btree_handle_underflow(nodo, nodo_underflow);
-        //btree_nodo_dispose(nodo_underflow);
-      }
-    }
+
+    // si me están pidiendo borrow pero soy nodo interno bajo siempre x la izquierda
+    k=0;
+
+    // finalmente, si lo anterior falla simplemente sigo bajando por el arbol
+    hijo = _btree_borrar(cadena, nodo->hijos[k], insertar_llave);
   }
-  return NULL;
+
+  // ahora voy de SUBIDA. Es bien penca el código, pero si se llegó aquí es porque estamos
+  // en un nodo interno e hijo es NULL si no hay underflow o apunta a un hijo con underflow de haberlo.
+
+  if(hijo == NULL){
+    // sin underflow heuahueahu
+    btree_nodo_dispose(nodo);
+    return NULL;
+  }
+
+  // tenemos underflow, ahora viene la parte cabrona.
+  // Bueno, en verdad la parte cabrona es implementar los shifts y merges
+  // El default es usar horario cuando pueda
+  if(k+1 < nodo->num_hijos){
+    // existe un nodo derecho
+    hermano = _get_nodo(nodo->hijos[k+1]);
+
+    // si el hermano tiene por lo menos B/2 + 1 elementos puedo hacer shift.
+    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hijo, hermano, k);
+    else {
+      // si no tiene, cagamos, hay que mergear
+      _btree_merge(nodo, hijo, hermano, k);
+    }
+  } else {
+    // no existe un nodo derecho, uso el izquierdo y compruebo lo mismo que en el caso anterior
+    hermano = _get_nodo(nodo->hijos[k-1]);
+    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftAntihorario(nodo, hermano, hijo, k);
+    else _btree_merge(nodo, hermano, hijo, k);
+  }
+
+  // tanto shift como merge vuelcan el nodo en mem secundaria
+  // reviso si yo mismo tengo underflow y retorno.
+  return _check_underflow(nodo);
 }
 
+
 void btree_borrar(const char *btree, const char *cadena){
+  struct btree_nodo *b;
+  char arch[64];
   int raiz = _get_raiz(btree);
   if(raiz < 0){
     return;
   }
-  /*
-  struct btree_nodo* nodo_raiz=_get_nodo(raiz);
-  struct btree_nodo* n1=_get_nodo(nodo_raiz->hijos[0]);
-  struct btree_nodo* n2=_get_nodo(nodo_raiz->hijos[1]);
-  printf("n1=%d, num_elems=%d\n", n1->indice, n1->num_hijos);
-  printf("n2=%d, num_elems=%d\n", n2->indice, n2->num_hijos);
-  */
 
-  _btree_borrar(cadena, raiz);
+  // la raiz no importa que tenga underflow
+  b = _btree_borrar(cadena, raiz, NULL);
+  if(b != NULL){
+    // no me importa el underflow en la raiz, pero sí que me importa
+    // una raíz con 0 elementos
+    if(b->num_elems==0){
+      _set_raiz(btree, b->hijos[0]);
+      sprintf(arch, "btree_nodo%i.data", b->indice);
+      remove(arch);
+      return;
+    }
+    _volcar_memext(b, b->indice);
+  }
 }
