@@ -460,7 +460,7 @@ static btree *_check_underflow(btree *nodo){
 
 // Hacemos una "rotación" en sentido antihorario de los elementos. ie: right pasa su menor a padre, y padre pasa su
 // indice-esimo a la derecha de left.
-static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo* right, struct btree_nodo* left, int indice){
+static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice){
   char *oldkey;
 
   // ver _btree_shiftHorario para los comentarios, es lo mismo pero hacia el otro lado
@@ -471,7 +471,8 @@ static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo*
   // ponemos el + a la izq. de right en el padre y shifteamos los elems de right.
   padre->elementos[indice] = strdup(right->elementos[0]);
   free(right->elementos[0]);
-  memmove(right->elementos, right->elementos + 1, sizeof(char*)*(right->num_elems-1));
+  if(right->num_elems-1 > 0)
+    memmove(right->elementos, right->elementos + 1, sizeof(char*)*(right->num_elems-1));
   right->num_elems--;
 
   // en left va la key antigua ya duplicada
@@ -479,12 +480,16 @@ static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo*
   left->num_elems++;
 
   // pasamos el primer hijo de right al ultimo hijo de left.
-  left->hijos[left->num_hijos] = right->hijos[0];
-  left->num_hijos++;
+  if(right->num_hijos>0){
+    left->hijos[left->num_hijos] = right->hijos[0];
+    left->num_hijos++;
 
-  // los hijos de right están desfasados, los arreglamos
-  memmove(right->hijos, right->hijos + 1, sizeof(int)*(right->num_hijos-1));
-  right->num_hijos--;
+    // los hijos de right están desfasados, los arreglamos
+    if(right->num_hijos-1 > 0)
+      memmove(right->hijos, right->hijos + 1, sizeof(int)*(right->num_hijos-1));
+    right->num_hijos--;
+  }
+
 
   // left y right no tienen overflow
   _volcar_memext(left, left->indice);
@@ -514,13 +519,16 @@ static void _btree_shiftHorario(struct btree_nodo* padre, struct btree_nodo* lef
   right->num_elems++;
 
   // ahora veamos los hijos
-  // el último hijo de left ahora es el primero de right
-  memmove(right->hijos + 1, right->hijos, sizeof(int)*right->num_hijos);
-  right->hijos[0] = left->hijos[left->num_hijos-1];
 
-  // left tiene un hijo menos y right tiene un hijo más.
-  left->num_hijos--;
-  right->num_hijos++;
+  if(left->num_hijos>0){
+    // el último hijo de left ahora es el primero de right
+    memmove(right->hijos + 1, right->hijos, sizeof(int)*right->num_hijos);
+    right->hijos[0] = left->hijos[left->num_hijos-1];
+
+    // left tiene un hijo menos y right tiene un hijo más.
+    left->num_hijos--;
+    right->num_hijos++;
+  }
 
   // finalmente, left y right no pueden tener underflow.
   _volcar_memext(left, left->indice);
@@ -612,11 +620,11 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
 
     // si este nodo es hoja, ya borré el elemento, me shifteo y calculo si tengo underflow
     // retorno NULL si no tengo o bien mi mismo nodo si sí tengo overflow.
-    if(nodo->num_hijos == 0){
+    if(nodo->num_hijos <= 0){
       if(nodo->num_elems - k - 1 >  0) {
         memmove(nodo->elementos + k, nodo->elementos + k + 1, sizeof(char *) * (nodo->num_elems - k - 1));
-        nodo->num_elems--;
       }
+      nodo->num_elems--;
 
       // si no tengo overflow, gg
       return _check_underflow(nodo);
@@ -634,7 +642,7 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     // el elemento NO ESTÁ
 
     // si soy hoja y me están pidiendo borrow, lo paso, calculo underflow y etc...
-    if(nodo->num_hijos == 0 && insertar_llave != NULL){
+    if(nodo->num_hijos <= 0 && insertar_llave != NULL){
       //si me están pidiendo que pase mi ele más chico lo paso
       strcpy(insertar_llave, nodo->elementos[0]);
       if(nodo->num_elems - 1 >  0) {
@@ -646,13 +654,13 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     }
 
     // si soy raiz pero no me están pidiendo borrow, nada que hacer, el elemento no está no más.
-    if(nodo->num_hijos==0) {
+    if(nodo->num_hijos<=0) {
       btree_nodo_dispose(nodo);
       return NULL;
     }
 
     // si me están pidiendo borrow pero soy nodo interno bajo siempre x la izquierda
-    k=0;
+    if(insertar_llave != NULL) k=0;
 
     // finalmente, si lo anterior falla simplemente sigo bajando por el arbol
     hijo = _btree_borrar(cadena, nodo->hijos[k], insertar_llave);
@@ -669,13 +677,14 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
 
   // tenemos underflow, ahora viene la parte cabrona.
   // Bueno, en verdad la parte cabrona es implementar los shifts y merges
-  // El default es usar horario cuando pueda
+  // El default es usar antihorario cuando pueda
   if(k+1 < nodo->num_hijos){
     // existe un nodo derecho
     hermano = _get_nodo(nodo->hijos[k+1]);
 
-    // si el hermano tiene por lo menos B/2 + 1 elementos puedo hacer shift.
-    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hijo, hermano, k);
+    // si el hermano tiene por lo menos B/2 + 1 elementos puedo hacer shift
+    // del derecho a mi
+    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftAntihorario(nodo, hijo, hermano, k);
     else {
       // si no tiene, cagamos, hay que mergear
       _btree_merge(nodo, hijo, hermano, k);
@@ -683,7 +692,7 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
   } else {
     // no existe un nodo derecho, uso el izquierdo y compruebo lo mismo que en el caso anterior
     hermano = _get_nodo(nodo->hijos[k-1]);
-    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftAntihorario(nodo, hermano, hijo, k);
+    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hermano, hijo, k);
     else _btree_merge(nodo, hermano, hijo, k);
   }
 

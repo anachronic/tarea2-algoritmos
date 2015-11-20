@@ -7,17 +7,18 @@
 #include "hash_lineal.h"
 #include "hash_extendible.h"
 
-int main() {
+int main(int argc, char**argv) {
   srand48(1);
+  system("rm *.data");
   btree_new(BTREE_FILE);
 //  struct hash_extendible h;
 //
 //  hashext_new(&h);
 
 //  int cadenillas = 28000;
-  int cadenillas = 205;
+  int cadenillas = atoi(argv[1]);
 //  int eliminar = 19900;
-  int eliminar = 204;
+  int eliminar = atoi(argv[2]);
 
   char **aleatorias = (char**)malloc(sizeof(char*)*cadenillas);
   int k = 0;
