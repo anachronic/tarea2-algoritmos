@@ -561,7 +561,8 @@ static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, stru
   left->num_elems += right->num_elems;
 
   // ahora copiamos todos los hijos de right a la derecha de left
-  memcpy(left->hijos + left->num_hijos, right->hijos, sizeof(int)*right->num_hijos);
+  if(right->num_hijos > 0)
+    memcpy(left->hijos + left->num_hijos, right->hijos, sizeof(int)*right->num_hijos);
   left->num_hijos += right->num_hijos;
 
   // el nodo nuevo está listo. hacemos shift de los elementos del padre.
@@ -692,8 +693,8 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
   } else {
     // no existe un nodo derecho, uso el izquierdo y compruebo lo mismo que en el caso anterior
     hermano = _get_nodo(nodo->hijos[k-1]);
-    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hermano, hijo, k);
-    else _btree_merge(nodo, hermano, hijo, k);
+    if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hermano, hijo, k-1);
+    else _btree_merge(nodo, hermano, hijo, k-1);
   }
 
   // tanto shift como merge vuelcan el nodo en mem secundaria
@@ -718,6 +719,7 @@ void btree_borrar(const char *btree, const char *cadena){
     if(b->num_elems==0){
       _set_raiz(btree, b->hijos[0]);
       sprintf(arch, "btree_nodo%i.data", b->indice);
+      btree_nodo_dispose(b);
       remove(arch);
       return;
     }
