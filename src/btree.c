@@ -503,7 +503,6 @@ static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo*
 static void _btree_shiftHorario(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice) {
   char *oldkey;
 
-  puts("shift horario!!!!1");
   // nos piteamos la llave del padre SIN HACER SHIFT DE LOS ELEMENTOS
   oldkey = strdup(padre->elementos[indice]);
   free(padre->elementos[indice]);
@@ -546,7 +545,6 @@ static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, stru
   int i_derecho;
   int k;
 
-  printf("indice=%i\n", indice);
   // primero, chao con el indice-esimo del padre
   oldkey = strdup(padre->elementos[indice]);
   free(padre->elementos[indice]);
@@ -698,7 +696,6 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftAntihorario(nodo, hijo, hermano, k);
     else {
       // si no tiene, cagamos, hay que mergear
-      printf("merge antihorario ");
       _btree_merge(nodo, hijo, hermano, k);
     }
   } else {
@@ -706,7 +703,6 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     hermano = _get_nodo(nodo->hijos[k-1]);
     if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hermano, hijo, k-1);
     else {
-      printf("MERGE HORARIO! ");
       _btree_merge(nodo, hermano, hijo, k-1);
     }
   }
