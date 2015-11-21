@@ -546,7 +546,7 @@ static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, stru
   int i_derecho;
   int k;
 
-  puts("MERGE");
+  printf("indice=%i\n", indice);
   // primero, chao con el indice-esimo del padre
   oldkey = strdup(padre->elementos[indice]);
   free(padre->elementos[indice]);
@@ -575,8 +575,8 @@ static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, stru
 
 
   // shift de los hijos tb. OJO con la cant. de hijos que movemos xq no está en términos de padre->num_hijos
-  if(padre->num_elems - indice - 1 > 0)
-    memmove(padre->hijos + indice + 1, padre->hijos + indice + 2, sizeof(int)*(padre->num_elems - indice - 1));
+  if(padre->num_hijos - indice - 2 > 0)
+    memmove(padre->hijos + indice + 1, padre->hijos + indice + 2, sizeof(int)*(padre->num_hijos - indice - 2));
 
   // no nos olvidemos que el padre tiene 1 elem y 1 hijo menos.
   padre->num_elems--;
@@ -641,9 +641,12 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
 
     // cuando llegue a la hoja SIEMPRE me voy a dar cuenta que el elem no está
     // y la hoja que se debe seguir me pasa el elemento.
-    int seguir = k + 1;
-    if(seguir == nodo->num_elems) seguir = k;
-    hijo = _btree_borrar(cadena, nodo->hijos[seguir], nodo->elementos[k]);
+    if(k <= BTREE_ELEMS_NODO){
+      k++;
+      hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k-1]);
+    } else {
+      hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k]);
+    }
 
   } else {
     // el elemento NO ESTÁ
@@ -695,13 +698,17 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftAntihorario(nodo, hijo, hermano, k);
     else {
       // si no tiene, cagamos, hay que mergear
+      printf("merge antihorario ");
       _btree_merge(nodo, hijo, hermano, k);
     }
   } else {
     // no existe un nodo derecho, uso el izquierdo y compruebo lo mismo que en el caso anterior
     hermano = _get_nodo(nodo->hijos[k-1]);
     if(hermano->num_elems >= (int)BTREE_ELEMS_NODO/2 + 1) _btree_shiftHorario(nodo, hermano, hijo, k-1);
-    else _btree_merge(nodo, hermano, hijo, k-1);
+    else {
+      printf("MERGE HORARIO! ");
+      _btree_merge(nodo, hermano, hijo, k-1);
+    }
   }
 
   // tanto shift como merge vuelcan el nodo en mem secundaria
