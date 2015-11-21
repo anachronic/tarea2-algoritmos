@@ -463,7 +463,6 @@ static btree *_check_underflow(btree *nodo){
 static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice){
   char *oldkey;
 
-  puts("shift antihorario1");
   // ver _btree_shiftHorario para los comentarios, es lo mismo pero hacia el otro lado
   // almacenamos la antigua key del padre
   oldkey = strdup(padre->elementos[indice]);
@@ -598,12 +597,13 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
   struct btree_nodo *hijo;
   struct btree_nodo *hermano;
   int k;
-  int indice_hermano;
+  int porladerecha;
 
   if(indice == -1){
     return NULL;
   }
 
+  porladerecha = 0;
   hijo = NULL;
   nodo=_get_nodo(indice);
 
@@ -639,12 +639,16 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
 
     // cuando llegue a la hoja SIEMPRE me voy a dar cuenta que el elem no está
     // y la hoja que se debe seguir me pasa el elemento.
-    if(k <= BTREE_ELEMS_NODO){
-      k++;
-      hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k-1]);
-    } else {
-      hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k]);
-    }
+    k++;
+//    porladerecha = 1;
+    hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k-1]);
+
+//    if(k <= BTREE_ELEMS_NODO){
+//      k++;
+//      hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k-1]);
+//    } else {
+//      hijo = _btree_borrar(cadena, nodo->hijos[k], nodo->elementos[k]);
+//    }
 
   } else {
     // el elemento NO ESTÁ
@@ -679,14 +683,15 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
   // en un nodo interno e hijo es NULL si no hay underflow o apunta a un hijo con underflow de haberlo.
 
   if(hijo == NULL){
-    // sin underflow heuahueahu
-    btree_nodo_dispose(nodo);
+    // sin underflow, pero potencialmente me pueden haber modificado
+    _volcar_memext(nodo, nodo->indice);
     return NULL;
   }
 
   // tenemos underflow, ahora viene la parte cabrona.
   // Bueno, en verdad la parte cabrona es implementar los shifts y merges
   // El default es usar antihorario cuando pueda
+//  if(porladerecha) k--;
   if(k+1 < nodo->num_hijos){
     // existe un nodo derecho
     hermano = _get_nodo(nodo->hijos[k+1]);

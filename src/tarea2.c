@@ -45,9 +45,11 @@ int main(int argc, char**argv) {
   printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas-eliminar);
 
   for(k=0; k<cadenillas; k++){
-    if(btree_search(BTREE_FILE, aleatorias[k]) == 1)
+    if(btree_search(BTREE_FILE, aleatorias[k]) == 1) {
 //    if(hashext_buscar(&h, aleatorias[k]) == 1)
       encontrados++;
+      if (k < eliminar) printf("WARNING: se encontró %s, que debió eliminarse.\n", aleatorias[k]);
+    }
 //    else printf("WARNING: No se encontró %s\n", aleatorias[k]);
   }
 
