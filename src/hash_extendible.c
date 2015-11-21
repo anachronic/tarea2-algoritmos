@@ -8,11 +8,14 @@
 #include "extmem.h"
 #include "cadenas.h"
 
+extern int hext_accesos;
 
 static struct hashext_pagina *_get_pagina(int indice){
   char *buf;
   struct hashext_pagina *p;
   char archivo[50];
+
+  hext_accesos++;
 
   sprintf(archivo, "hashext_nodo%i.data", indice);
 
@@ -39,6 +42,8 @@ static void _volcar_pagina(struct hashext_pagina *p, int indice){
   char *buf;
   char archivo[50];
   FILE *f;
+
+  hext_accesos++;
 
   sprintf(archivo, "hashext_nodo%i.data", indice);
 

@@ -7,6 +7,8 @@
 #include "extmem.h"
 #include "fallos.h"
 
+extern int tree_accesos;
+
 void btree_new(char *archivo) {
   FILE *f;
   int raiz;
@@ -73,6 +75,8 @@ static void _volcar_memext(struct btree_nodo *nodo, int indice_nodo) {
   FILE *f;
   char archivo[64];
 
+  tree_accesos++;
+
   sprintf(archivo, "btree_nodo%i.data", indice_nodo);
   f = fopen(archivo, "wb");
 
@@ -88,6 +92,8 @@ static struct btree_nodo *_get_nodo(int indice){
   char *buf;
   struct btree_nodo *n;
   char archivo[64];
+
+  tree_accesos++;
 
   sprintf(archivo, "btree_nodo%i.data", indice);
   buf = recuperar_bloque(archivo, 0, 0);

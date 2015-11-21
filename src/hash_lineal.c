@@ -8,7 +8,7 @@
 #include "cadenas.h"
 #include "extmem.h"
 
-
+extern int hlin_accesos;
 
 static void _dispose_pagina(struct hashlin_pagina *p){
   int k;
@@ -27,6 +27,8 @@ static void _volcar_pagina(struct hashlin_pagina *p, int bucket){
   char *buf;
   FILE *f;
 
+  hlin_accesos++;
+
   buf = serializar_pagina_lin(p);
 
   sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, p->list_index);
@@ -44,6 +46,8 @@ static struct hashlin_pagina *_get_pagina(int bucket, int index){
   struct hashlin_pagina *p;
   char archivo[64];
   char *buf;
+
+  hlin_accesos++;
 
   sprintf(archivo, "hashlin_nodo%i-%i.data", bucket, index);
 

@@ -5,6 +5,11 @@
 #include "parametros.h"
 
 
+static long intrand(long max){
+  return (long)(drand48() * max);
+}
+
+
 char base_rand(){
   double r = drand48();
 
@@ -13,7 +18,6 @@ char base_rand(){
   else if (r < 0.75) return 'G';
   else return 'C';
 }
-
 
 // Para usar esta función se debe PROVEER un array de chars
 // de tamaño AL MENOS 16
@@ -24,6 +28,13 @@ void cadena_rand(char *buffer){
     buffer[k] = base_rand();
   }
   buffer[k] = 0;
+}
+
+char *get_random_from_array(char **arr, long size){
+  long index;
+
+  index = intrand(size);
+  return arr[index];
 }
 
 unsigned int DNAhash(char* s){
