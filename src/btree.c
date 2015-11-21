@@ -463,6 +463,7 @@ static btree *_check_underflow(btree *nodo){
 static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice){
   char *oldkey;
 
+  puts("shift antihorario1");
   // ver _btree_shiftHorario para los comentarios, es lo mismo pero hacia el otro lado
   // almacenamos la antigua key del padre
   oldkey = strdup(padre->elementos[indice]);
@@ -502,6 +503,7 @@ static void _btree_shiftAntihorario(struct btree_nodo* padre, struct btree_nodo*
 static void _btree_shiftHorario(struct btree_nodo* padre, struct btree_nodo* left, struct btree_nodo* right, int indice) {
   char *oldkey;
 
+  puts("shift horario!!!!1");
   // nos piteamos la llave del padre SIN HACER SHIFT DE LOS ELEMENTOS
   oldkey = strdup(padre->elementos[indice]);
   free(padre->elementos[indice]);
@@ -522,7 +524,8 @@ static void _btree_shiftHorario(struct btree_nodo* padre, struct btree_nodo* lef
 
   if(left->num_hijos>0){
     // el último hijo de left ahora es el primero de right
-    memmove(right->hijos + 1, right->hijos, sizeof(int)*right->num_hijos);
+    if(right->num_hijos > 0)
+      memmove(right->hijos + 1, right->hijos, sizeof(int)*right->num_hijos);
     right->hijos[0] = left->hijos[left->num_hijos-1];
 
     // left tiene un hijo menos y right tiene un hijo más.
@@ -543,6 +546,7 @@ static void _btree_merge(struct btree_nodo* padre, struct btree_nodo* left, stru
   int i_derecho;
   int k;
 
+  puts("MERGE");
   // primero, chao con el indice-esimo del padre
   oldkey = strdup(padre->elementos[indice]);
   free(padre->elementos[indice]);
@@ -637,7 +641,9 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
 
     // cuando llegue a la hoja SIEMPRE me voy a dar cuenta que el elem no está
     // y la hoja que se debe seguir me pasa el elemento.
-    hijo = _btree_borrar(cadena, nodo->hijos[k+1], nodo->elementos[k]);
+    int seguir = k + 1;
+    if(seguir == nodo->num_elems) seguir = k;
+    hijo = _btree_borrar(cadena, nodo->hijos[seguir], nodo->elementos[k]);
 
   } else {
     // el elemento NO ESTÁ
@@ -646,6 +652,7 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     if(nodo->num_hijos <= 0 && insertar_llave != NULL){
       //si me están pidiendo que pase mi ele más chico lo paso
       strcpy(insertar_llave, nodo->elementos[0]);
+      free(nodo->elementos[0]);
       if(nodo->num_elems - 1 >  0) {
         memmove(nodo->elementos, nodo->elementos + 1, sizeof(char *) * (nodo->num_elems - 1));
         nodo->num_elems--;
@@ -655,13 +662,13 @@ static btree* _btree_borrar(const char *cadena, int indice, char *insertar_llave
     }
 
     // si soy raiz pero no me están pidiendo borrow, nada que hacer, el elemento no está no más.
-    if(nodo->num_hijos<=0) {
+    if(nodo->num_hijos<=0 && insertar_llave == NULL) {
       btree_nodo_dispose(nodo);
       return NULL;
     }
 
     // si me están pidiendo borrow pero soy nodo interno bajo siempre x la izquierda
-    if(insertar_llave != NULL) k=0;
+    if(nodo->num_hijos > 0 && insertar_llave != NULL) k=0;
 
     // finalmente, si lo anterior falla simplemente sigo bajando por el arbol
     hijo = _btree_borrar(cadena, nodo->hijos[k], insertar_llave);

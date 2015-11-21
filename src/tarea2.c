@@ -39,6 +39,8 @@ int main(int argc, char**argv) {
   for(k=0; k<eliminar; k++){
     btree_borrar(BTREE_FILE, aleatorias[k]);
   }
+//  btree_borrar(BTREE_FILE, "CTCGTCTGAGAACTC");
+//  btree_borrar(BTREE_FILE, aleatorias[0]);
 
   printf("Buscando %i cadenas. Se deben encontrar %i\n", cadenillas, cadenillas-eliminar);
 
