@@ -1,61 +1,45 @@
 #ifndef TAREA2_ALGORITMOS_HASH_LINEAL_H
 #define TAREA2_ALGORITMOS_HASH_LINEAL_H
 
-#define HASHLIN_BIT_MAX 32
-#define HASHLIN_BIT 6
-#define HASHLIN_NODE_SIZE 32
+#include "parametros.h"
 
-typedef struct hash_node_struct {
 
-	struct hash_node_struct* next;
+#define NUM_ELEMS_PAGINA_LIN 127
 
-	struct hash_node_struct* prev;
+struct hash_lineal {
+  int num_elems;
+  int num_buckets;
+  int s; // la "mitad" de max_buckets.
+  // esta funcion debe retornar 0 si no se debe hacer nada
+  //  1 si hay que expandir
+  // -1 si hay que contraer
+  int (*politica)(int,int);
+};
 
-	void* data;
 
-	unsigned int key;
-	
-} hash_node;
+/*
+Estructura de una pagina en MEMORIA SECUNDARIA:
+4    bytes: numero de elementos
+4    bytes: indice en la cola de paginas.
+4064 bytes: 127 pares (key,value)
 
-typedef struct hashlin_struct {
-	char* bucket[HASHLIN_BIT_MAX]; /**< Dynamic array of hash buckets. One list for each hash modulus. */
-	unsigned int bucket_max; /**< Number of buckets. */
-	unsigned int bucket_bit; /**< Bits used in the bit mask. */
-	unsigned int bucket_mask; /**< Bit mask to access the buckets. */
-	unsigned int low_max; /**< Low order max value. */
-	unsigned int low_mask; /**< Low order mask value. */
-	unsigned int split; /**< Split position. */
-	unsigned int count; /**< Number of elements. */
-	unsigned int state; /**< Reallocation state. */
-} hashlin;
+TOTAL: 4072 bytes por pagina (de un total de 4096=B)
+ */
+struct hashlin_pagina {
+  int num_elems;
+  int list_index;
+  char **hashes;
+  char **values;
+};
 
-/* Operaciones del diccionario */
-void hashlin_init(hashlin* hashlin);
-void hashlin_destroy(hashlin* hashlin);
-void hashlin_insert(hashlin* hashlin, void* data);
-void* hashlin_remove(hashlin* hashlin, const void* cmp_arg);
-void* hashlin_search(hashlin* hashlin, const void* cmp_arg);
+void hashlin_new(struct hash_lineal *h, int (*politica)(int,int));
+void hashlin_insertar(struct hash_lineal *h, char *key, char *value);
+int hashlin_buscar(struct hash_lineal *h, char *key);
+void hashlin_eliminar(struct hash_lineal *h, char *key);
+void hashlin_dispose(struct hash_lineal *h);
 
-/* Función de hash para las cadenas de ADN */
-unsigned int DNAhash(char* s);
+struct hashlin_pagina *deserializar_pagina_lin(char *buf);
+char *serializar_pagina_lin(struct hashlin_pagina *p);
 
-/* Funciones auxiliares */
-hash_node** hashlin_pos(hashlin* hashlin, unsigned int pos);
-unsigned int ilog2_u32(unsigned int value);
-hash_node** hashlin_bucket_ref(hashlin* hashlin, unsigned int hash);
-
-/* Listas enlazadas */
-void list_insert_tail(hash_node** list, hash_node* node, void* data);
-void list_insert_tail_not_empty(hash_node* head, hash_node* node);
-void list_insert_first(hash_node** list, hash_node* node);
-int list_empty(hash_node** list);
-void list_concat(hash_node** first, hash_node** second);
-hash_node* list_head(hash_node** list);
-hash_node* list_tail(hash_node** list);
-void* list_remove_existing(hash_node** list, hash_node* node);
-
-/* Serialización */
-char* serializar_lista_hashlin(hash_node* list);
-hash_node* deserializar_lista_hashlin(char* buffer);
 
 #endif //TAREA2_ALGORITMOS_HASH_LINEAL_H
