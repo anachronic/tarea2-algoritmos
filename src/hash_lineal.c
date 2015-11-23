@@ -8,7 +8,7 @@
 #include "cadenas.h"
 #include "extmem.h"
 
-extern int hlin_accesos;
+extern unsigned long hlin_accesos;
 
 static void _dispose_pagina(struct hashlin_pagina *p){
   int k;

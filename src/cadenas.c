@@ -37,6 +37,44 @@ char *get_random_from_array(char **arr, long size){
   return arr[index];
 }
 
+
+void crear_cadenas(struct cadena_struct *cs, int size){
+  cs->total_alloc = size;
+  cs->num_elems = size;
+  cs->cadenas = (char**)malloc(sizeof(char*)*size);
+
+  int k;
+  for(k=0; k<cs->num_elems; k++){
+    cs->cadenas[k] = (char*)malloc(TAMANO_CADENA);
+    cadena_rand(cs->cadenas[k]);
+  }
+}
+
+char *get_cadena(struct cadena_struct *cs, int k){
+  return cs->cadenas[k];
+}
+
+void eliminar_cadena(struct cadena_struct *cs, int k){
+  if(cs == NULL || cs->cadenas == NULL || cs->cadenas[k] == NULL) return;
+
+  free(cs->cadenas[k]);
+  memmove(cs->cadenas + k, cs->cadenas + k + 1, sizeof(char*)*(cs->num_elems - k - 1));
+  cs->num_elems--;
+}
+
+void dispose_cadenas(struct cadena_struct *cs){
+  int k;
+
+  if(cs!=NULL){
+    if(cs->cadenas != NULL){
+      for(k=0; k<cs->num_elems; k++){
+        free(cs->cadenas[k]);
+      }
+      free(cs->cadenas);
+    }
+  }
+}
+
 unsigned int DNAhash(char* s){
     /* Pasamos a binario el primer caracter del string */
     if(strlen(s)>0){

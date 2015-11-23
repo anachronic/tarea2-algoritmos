@@ -9,7 +9,7 @@
 #include "extmem.h"
 #include "cadenas.h"
 
-extern int hext_accesos;
+extern unsigned long hext_accesos;
 
 static struct hashext_pagina *_get_pagina(int indice){
   char *buf;

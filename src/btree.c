@@ -8,7 +8,7 @@
 #include "extmem.h"
 #include "fallos.h"
 
-extern int tree_accesos;
+extern unsigned long tree_accesos;
 
 void btree_new(char *archivo) {
   FILE *f;

@@ -9,9 +9,9 @@
 #include "parametros.h"
 #include "extmem.h"
 
-int hlin_accesos = 0;
-int hext_accesos = 0;
-int tree_accesos = 0;
+unsigned long hlin_accesos = 0;
+unsigned long hext_accesos = 0;
+unsigned long tree_accesos = 0;
 
 int politica1(int num_elems, int num_buckets){
   if(1.0*num_elems/num_buckets > 1.5*NUM_ELEMS_PAGINA_LIN) return 1;
@@ -25,12 +25,34 @@ int politicatest(int a, int b){
   return 0;
 }
 
+static long intrand(long max){
+  return (long)(drand48() * max);
+}
+
+
 int main(int argc, char **argv) {
   srand48(getpid());
 
+  // borrar los vestigios de algún experimento anterior
   system("rm *.data");
 
   btree_new(BTREE_FILE);
+
+  FILE *fbtree = fopen("btree_resultados_insercion.dat", "wt");
+  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fbtree, "#milestone\tI/O acumulado\tp ocupacion\n");
+  FILE *fhext = fopen("hext_resultados_insercion.dat", "wt");
+  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhext, "#milestone\tI/O acumulado\tp ocupacion\n");
+  FILE *fhlin = fopen("hlin_resultados_insercion.dat", "wt");
+  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhlin, "#milestone\tI/O acumulado\tp ocupacion\n");
 
   struct hash_extendible hext;
   hashext_new(&hext);
@@ -38,59 +60,128 @@ int main(int argc, char **argv) {
   struct hash_lineal hlin;
   hashlin_new(&hlin, politica1);
 
-  int strings = TOTAL_CADENAS;
+//  int strings = TOTAL_CADENAS;
   int buscar = BUSCAR_CADENAS;
   int borrar = BORRAR_CADENAS;
 
-  char **aleatorias = (char**)malloc(sizeof(char*)*strings);
+//  char **aleatorias = (char**)malloc(sizeof(char*)*strings);
+
+  struct cadena_struct cs;
+  crear_cadenas(&cs, TOTAL_CADENAS);
   int k = 0;
+  int potencia;
 
-  printf("Insertando %i cadenas en cada estructura\n", strings);
-  for(k=0; k<strings; k++){
-    aleatorias[k] = (char*)malloc(sizeof(char)*16);
-    cadena_rand(aleatorias[k]);
+  printf("Insertando %i cadenas en cada estructura\n", TOTAL_CADENAS);
+  for(k=0; k<cs.num_elems; k++){
+    btree_insertar(BTREE_FILE, get_cadena(&cs, k));
+    hashext_insertar(&hext, get_cadena(&cs, k), get_cadena(&cs, k));
+    hashlin_insertar(&hlin, get_cadena(&cs, k), get_cadena(&cs, k));
 
-    btree_insertar(BTREE_FILE, aleatorias[k]);
-    hashext_insertar(&hext, aleatorias[k], aleatorias[k]);
-    hashlin_insertar(&hlin, aleatorias[k], aleatorias[k]);
+    for (potencia=20; potencia<=25; potencia++){
+      if(k+1==(1<<potencia)){
+        fprintf(fbtree, "%i\t%lu\t%f\n", k+1, tree_accesos, get_ocupacion_btree(BTREE_FILE));
+        fprintf(fhext, "%i\t%lu\t%f\n", k+1, hext_accesos, get_ocupacion_hext(&hext));
+        fprintf(fhlin, "%i\t%lu\t%f\n", k+1, hlin_accesos, get_ocupacion_hlin(&hlin));
+      }
+    }
   }
 
-  int encontrados_h1=0;
-  int encontrados_h2=0;
-  int encontrados_bt=0;
+  fclose(fbtree);
+  fclose(fhext);
+  fclose(fhlin);
 
-  printf("Eliminando %i cadenas\n", borrar);
+  tree_accesos = 0;
+  hlin_accesos = 0;
+  hext_accesos = 0;
 
-  for(k=0; k<borrar; k++){
-    hashext_eliminar(&hext, aleatorias[k]);
-    hashlin_eliminar(&hlin, aleatorias[k]);
-    btree_borrar(BTREE_FILE, aleatorias[k]);
-  }
+  fbtree = fopen("btree_resultados_busqueda.dat", "wt");
+  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fbtree, "#milestone\tI/O acumulado\tp ocupacion\n");
+  fhext = fopen("hext_resultados_busqueda.dat", "wt");
+  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhext, "#milestone\tI/O acumulado\tp ocupacion\n");
+  fhlin = fopen("hlin_resultados_busqueda.dat", "wt");
+  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhlin, "#milestone\tI/O acumulado\tp ocupacion\n");
 
   printf("Buscando %i cadenas.\n", buscar);
+  buscar = cs.num_elems;
 
   for(k=0; k<buscar; k++){
-    if(btree_search(BTREE_FILE, aleatorias[k])) encontrados_bt++;
-    if(hashext_buscar(&hext, aleatorias[k])) encontrados_h1++;
-    if(hashlin_buscar(&hlin, aleatorias[k])) encontrados_h2++;
+    btree_search(BTREE_FILE, get_cadena(&cs, k));
+    hashext_buscar(&hext, get_cadena(&cs, k));
+    hashlin_buscar(&hlin, get_cadena(&cs, k));
+
+    for (potencia=20; potencia<=25; potencia++){
+      if(k+1==(1<<potencia)){
+        fprintf(fbtree, "%i\t%lu\t%f\n", k+1, tree_accesos, get_ocupacion_btree(BTREE_FILE));
+        fprintf(fhext, "%i\t%lu\t%f\n", k+1, hext_accesos, get_ocupacion_hext(&hext));
+        fprintf(fhlin, "%i\t%lu\t%f\n", k+1, hlin_accesos, get_ocupacion_hlin(&hlin));
+      }
+    }
   }
 
-  printf("Ocupación BTree\t\t%f\n", get_ocupacion_btree(BTREE_FILE));
-  printf("Ocupación Hash Lineal\t%f\n", get_ocupacion_hlin(&hlin));
-  printf("Ocupación Hash Extendible\t%f\n", get_ocupacion_hext(&hext));
+  fclose(fbtree);
+  fclose(fhext);
+  fclose(fhlin);
 
-  printf("Btree encontró %i\n", encontrados_bt);
-  printf("Hashing extendible encontró %i\n", encontrados_h1);
-  printf("Hashing lineal encontró %i\n", encontrados_h2);
+  tree_accesos = 0;
+  hlin_accesos = 0;
+  hext_accesos = 0;
 
-  printf("Accesos B-Tree\t%i\n", tree_accesos);
-  printf("Accesos Hash Lineal\t%i\n", hlin_accesos);
-  printf("Accesos Hash Extendible\t%i\n", hext_accesos);
+  fbtree = fopen("btree_resultados_eliminacion.dat", "wt");
+  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fbtree, "#milestone\tI/O acumulado\tp ocupacion\n");
+  fhext = fopen("hext_resultados_eliminacion.dat", "wt");
+  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhext, "#milestone\tI/O acumulado\tp ocupacion\n");
+  fhlin = fopen("hlin_resultados_eliminacion.dat", "wt");
+  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas");
+  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
+  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhlin, "#milestone\tI/O acumulado\tp ocupacion\n");
 
-  for(k=0; k<strings; k++) free(aleatorias[k]);
 
-  free(aleatorias);
+  printf("Eliminando %i cadenas\n", borrar);
+  borrar = cs.num_elems;
+
+  for(k=intrand(cs.num_elems); cs.num_elems>0;){
+    hashext_eliminar(&hext, get_cadena(&cs, k));
+    hashlin_eliminar(&hlin, get_cadena(&cs, k));
+    btree_borrar(BTREE_FILE, get_cadena(&cs, k));
+
+    for (potencia=20; potencia<=25; potencia++){
+      if(k+1==(1<<potencia)){
+        fprintf(fbtree, "%i\t%lu\t%f\n", k+1, tree_accesos, get_ocupacion_btree(BTREE_FILE));
+        fprintf(fhext, "%i\t%lu\t%f\n", k+1, hext_accesos, get_ocupacion_hext(&hext));
+        fprintf(fhlin, "%i\t%lu\t%f\n", k+1, hlin_accesos, get_ocupacion_hlin(&hlin));
+      }
+    }
+    eliminar_cadena(&cs, k);
+  }
+
+  fclose(fbtree);
+  fclose(fhext);
+  fclose(fhlin);
+
+
+  dispose_cadenas(&cs);
+
+//  for(k=0; k<strings; k++) free(aleatorias[k]);
+
+//  free(aleatorias);
   hashext_dispose(&hext);
+
 
 
   return 0;
