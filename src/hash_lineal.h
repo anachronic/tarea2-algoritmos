@@ -41,5 +41,7 @@ void hashlin_dispose(struct hash_lineal *h);
 struct hashlin_pagina *deserializar_pagina_lin(char *buf);
 char *serializar_pagina_lin(struct hashlin_pagina *p);
 
+float get_ocupacion_hlin(struct hash_lineal *h);
+
 
 #endif //TAREA2_ALGORITMOS_HASH_LINEAL_H

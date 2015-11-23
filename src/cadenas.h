@@ -1,9 +1,9 @@
 #ifndef TAREA2_ALGORITMOS_CADENAS_H
 #define TAREA2_ALGORITMOS_CADENAS_H
 
-#define CADENAS_BORRAR 10000
-#define CADENAS_BUSCAR 10000
-#define CADENAS_TOTAL (1<<20)
+#define BORRAR_CADENAS 10000
+#define BUSCAR_CADENAS 10000
+#define TOTAL_CADENAS (1<<14)
 
 char base_rand();
 void cadena_rand(char *buffer);

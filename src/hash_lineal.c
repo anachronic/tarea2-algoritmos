@@ -421,4 +421,36 @@ char *serializar_pagina_lin(struct hashlin_pagina *p){
   return buffer;
 }
 
+float get_ocupacion_hlin(struct hash_lineal *h){
+  int k, j;
+  unsigned long long suma = 0;
+  int paginas = 0;
+  char archivo[128];
+  struct hashlin_pagina *pagina;
 
+  for(k=0; 1; k++){
+    //verificamos que exista el bucket
+    sprintf(archivo, "hashlin_nodo%i-0.data", k);
+
+    if(access(archivo, F_OK) != 0){
+      // llegamos al ultimo bucket.
+      break;
+    }
+
+    // k es el bucket, j es una página
+    for(j=0; 1; j++){
+      sprintf(archivo, "hashlin_nodo%i-%i.data", k, j);
+
+      if(access(archivo, F_OK) != 0) break;
+
+      pagina = _get_pagina(k, j);
+      if(pagina->num_elems > 0) {
+        paginas++;
+        suma += pagina->num_elems * TAMANO_CADENA + 8 * sizeof(int);
+      }
+      _dispose_pagina(pagina);
+    }
+  }
+
+  return (float)1.0*suma/(paginas*B);
+}

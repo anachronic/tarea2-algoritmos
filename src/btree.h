@@ -52,4 +52,6 @@ void btree_nodo_dispose(struct btree_nodo *b);
 char *serializar_nodo(struct btree_nodo *b);
 struct btree_nodo *deserializar_nodo(char *buffer);
 
+float get_ocupacion_btree(const char *btree);
+
 #endif //TAREA2_ALGORITMOS_BTREE_H

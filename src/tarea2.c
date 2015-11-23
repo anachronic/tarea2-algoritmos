@@ -26,7 +26,7 @@ int politicatest(int a, int b){
 }
 
 int main(int argc, char **argv) {
-  srand48(1);
+  srand48(getpid());
 
   system("rm *.data");
 
@@ -38,15 +38,15 @@ int main(int argc, char **argv) {
   struct hash_lineal hlin;
   hashlin_new(&hlin, politica1);
 
-  int cadenas = CADENAS_TOTAL;
-  int buscar = CADENAS_BUSCAR;
-  int borrar = CADENAS_BORRAR;
+  int strings = TOTAL_CADENAS;
+  int buscar = BUSCAR_CADENAS;
+  int borrar = BORRAR_CADENAS;
 
-  char **aleatorias = (char**)malloc(sizeof(char*)*cadenas);
+  char **aleatorias = (char**)malloc(sizeof(char*)*strings);
   int k = 0;
 
-  printf("Insertando %i cadenas en cada estructura\n", cadenas);
-  for(k=0; k<cadenas; k++){
+  printf("Insertando %i cadenas en cada estructura\n", strings);
+  for(k=0; k<strings; k++){
     aleatorias[k] = (char*)malloc(sizeof(char)*16);
     cadena_rand(aleatorias[k]);
 
@@ -55,7 +55,9 @@ int main(int argc, char **argv) {
     hashlin_insertar(&hlin, aleatorias[k], aleatorias[k]);
   }
 
-  int encontrados=0;
+  int encontrados_h1=0;
+  int encontrados_h2=0;
+  int encontrados_bt=0;
 
   printf("Eliminando %i cadenas\n", borrar);
 
@@ -68,14 +70,24 @@ int main(int argc, char **argv) {
   printf("Buscando %i cadenas.\n", buscar);
 
   for(k=0; k<buscar; k++){
-    btree_search(BTREE_FILE, aleatorias[k]);
-    hashext_buscar(&hext, aleatorias[k]);
-    hashlin_buscar(&hlin, aleatorias[k]);
+    if(btree_search(BTREE_FILE, aleatorias[k])) encontrados_bt++;
+    if(hashext_buscar(&hext, aleatorias[k])) encontrados_h1++;
+    if(hashlin_buscar(&hlin, aleatorias[k])) encontrados_h2++;
   }
 
-  printf("Encontrados %i elementos\n", encontrados);
+  printf("Ocupación BTree\t\t%f\n", get_ocupacion_btree(BTREE_FILE));
+  printf("Ocupación Hash Lineal\t%f\n", get_ocupacion_hlin(&hlin));
+  printf("Ocupación Hash Extendible\t%f\n", get_ocupacion_hext(&hext));
 
-  for(k=0; k<cadenas; k++) free(aleatorias[k]);
+  printf("Btree encontró %i\n", encontrados_bt);
+  printf("Hashing extendible encontró %i\n", encontrados_h1);
+  printf("Hashing lineal encontró %i\n", encontrados_h2);
+
+  printf("Accesos B-Tree\t%i\n", tree_accesos);
+  printf("Accesos Hash Lineal\t%i\n", hlin_accesos);
+  printf("Accesos Hash Extendible\t%i\n", hext_accesos);
+
+  for(k=0; k<strings; k++) free(aleatorias[k]);
 
   free(aleatorias);
   hashext_dispose(&hext);

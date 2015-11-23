@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "btree.h"
 #include "parametros.h"
@@ -696,4 +697,28 @@ void btree_borrar(const char *btree, const char *cadena){
     }
     _volcar_memext(b, b->indice);
   }
+}
+
+
+float get_ocupacion_btree(const char *btree){
+  unsigned long long suma = 0;
+  int nodos = 0;
+  char archivo[128];
+  int k=0;
+  int ultimo = _last_indice(btree);
+  struct btree_nodo *nodo;
+
+  for(k=0; k < ultimo; k++){
+    sprintf(archivo, "btree_nodo%i.data", k);
+
+    if(access(archivo, F_OK) != 0) continue;
+
+    // el archivo existe
+    nodo = _get_nodo(k);
+    nodos++;
+    suma += nodo->num_elems*TAMANO_CADENA + (nodo->num_elems + 1)*sizeof(int) + 3* sizeof(int);
+    btree_nodo_dispose(nodo);
+  }
+
+  return (float)1.0*suma/(nodos*B);
 }

@@ -2,7 +2,7 @@
 #define TAREA2_ALGORITMOS_HASH_EXTENDIBLE_H
 
 #define NUM_ELEMS_PAGINA 127
-#define NUM_RECOMBINACION ((int)5/7*NUM_ELEMS_PAGINA)
+#define NUM_RECOMBINACION ((int)(5/7*NUM_ELEMS_PAGINA))
 
 struct hash_extendible {
   struct hash_extendible_p *h;
@@ -41,6 +41,8 @@ void hashext_dispose(struct hash_extendible *h);
 
 struct hashext_pagina *deserializar_pagina(char *buf);
 char *serializar_pagina(struct hashext_pagina *p);
+
+float get_ocupacion_hext(struct hash_extendible *h);
 
 
 #endif //TAREA2_ALGORITMOS_HASH_EXTENDIBLE_H

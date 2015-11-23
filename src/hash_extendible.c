@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "hash_extendible.h"
 #include "hash_lineal.h" // para la funcion de hash
@@ -375,4 +376,32 @@ struct hashext_pagina *deserializar_pagina(char *buf){
   }
 
   return p;
+}
+
+
+float get_ocupacion_hext(struct hash_extendible *h){
+  int k;
+  unsigned long long suma = 0;
+  int paginas = 0;
+  char archivo[128];
+  struct hashext_pagina *pagina;
+
+  for(k=0; k<=h->max_indice; k++){
+    //verificamos que exista el bucket
+    sprintf(archivo, "hashext_nodo%i.data", k);
+
+    if(access(archivo, F_OK) != 0){
+      // llegamos al ultimo bucket.
+      continue;
+    }
+
+    pagina = _get_pagina(k);
+    if(pagina->num_elems > 0) {
+      paginas++;
+      suma += pagina->num_elems * TAMANO_CADENA + 8 * sizeof(int);
+    }
+    _dispose_pagina(pagina);
+  }
+
+  return (float)1.0*suma/(paginas*B);
 }
