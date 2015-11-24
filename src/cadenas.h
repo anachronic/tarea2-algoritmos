@@ -3,7 +3,7 @@
 
 #define BORRAR_CADENAS 10000
 #define BUSCAR_CADENAS 10000
-#define TOTAL_CADENAS (1<<25)
+#define TOTAL_CADENAS (1<<20)
 
 char base_rand();
 void cadena_rand(char *buffer);

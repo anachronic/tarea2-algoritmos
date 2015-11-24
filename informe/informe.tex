@@ -4,7 +4,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage[right=2cm,left=3cm,top=2cm,bottom=2cm,headsep=0cm,footskip=0.5cm]{geometry}
 \usepackage{graphicx}
+\usepackage{float}
 \usepackage{wrapfig}
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
 
 \title{\Huge Diccionarios en Memoria Secundaria \\ Tarea 2 \\ CC4102 - Diseño y Análisis de Algoritmos}
 \author{Nicolás Salas V.\\Daniel Rojas C.}
@@ -62,7 +64,15 @@ Hasta ahora se ha dado una discusión bastante grande de qué es memoria secunda
 \item Hashing Lineal
 \end{itemize}
 
-A grandes rasgos, un Árbol B es un árbol $B+1$\emph{-ario}
+\subsubsection{Árbol B}
+A grandes rasgos, un Árbol B es un árbol $B+1$\emph{-ario} donde cada nodo tiene $B$ elementos\footnote{Algunos autores usan $B$ como otro parámetro (por ejemplo, la profunidad del árbol). Pero la estructura es la misma de todas maneras}. La condición que cumple un Árbol B es que el $k$-ésimo elemento de un nodo es mayor que todos los elementos del $k$-ésimo hijo y menor que todos los del ($k+1$)-ésimo. Adicionalmente, en memoria secundaria, y para asegurar que el árbol no gasta demasiado espacio, se impone que todos los hijos tengan $\lfloor \frac{B}{2} \rfloor$ elementos. Mayores detalles respecto de estas estructuras se dan en la sección de Diseño Experimental.
+
+\subsubsection{Hashing Extendible}
+Una estructura de hashing extendible es una estructura que, como cualquier otra de hashing, está diseñada para hacer búsquedas en tiempo $O(1)$ usando una función de hashing. Para ello se usan los bits generados por la función de hashing y un \emph{Trie}\footnote{En los apéndices se describe esta estructura.} para navegar por los elementos insertados \textbf{en memoria principal}. Las hojas del trie apuntan a páginas del disco que contienen los elementos. Recuérdese que cuando se habla de memoria secundaria, $O(1)$ corresponde a la cantidad de \textbf{accesos a disco}, y no a la cantidad de comparaciones. Mayores detalles se dan en la sección de Diseño Experimental.
+
+\subsubsection{Hashing Lineal}
+El hashing lineal, al igual que el Hashing Extendible, intenta realizar la mínima cantidad de accesos a disco posible. Para divide los elementos según el módulo de su función de hashing en algún número $S$ y los separa según el resultado de dicha operación. Esta estructura tiene la ventaja (sobre el hashing extendible) de no necesitar de memoria principal para mantener su consistencia en disco. Esta estructura es más complicada de explicar simplificadamente, de manera que se dejará su explicación a fondo para la sección de Diseño Experimental.
+
 
 \subsection{Notación}
 
@@ -81,12 +91,25 @@ De no especificarlo, estas cantidades siempre estarán en bytes. Adicionalmente,
 
 \subsection{Experimento}
 
-Para ver qué estructuras son mejores según las medidas de rendimiento antes expuestas 
+Para ver qué estructuras son mejores según las medidas de rendimiento antes expuestas se parametrizará el tiempo según la cantidad de accesos a disco\footnote{Técnica bastante común en el análisis de algoritmos.}.\\
 
+Interesa, entonces, comparar el uso efectivo de memoria secundaria versus el uso real de disco y verificar si es que existe alguna relación entre esas dos cantidades. Los detalles de cómo se hará esta comparación se exponen en la sección de Diseño Experimental.
 
 \newpage
 \section{Hipótesis}
-hipo
+Una duda bastante legítima, en primer lugar, es preguntarse \textbf{por qué} alguien usaría un Árbol B en vez de cualquier estructura de Hashing. En los apéndices se explica que el costo de accesos a disco en un Árbol B es $O(\log_B N)$ amortizado. Mientras que ya se dijo\footnote{Sin pruebas, pero la dejaremos en los apéndices} que el costo de accesos en una estructura de Hashing es $O(1)$.\\
+
+No es difícil darse cuenta que ambas estructuras de Hashing que se prueban para este experimento generan una partición del estilo de \emph{clases de equivalencia} dentro de los posibles inputs, y mientras más se expanden la estructuras, más específica se hace la partición. Esto ciertamente que minimiza la cantidad de accesos a disco por búsqueda, borrado e inserción, pero también hace que se almacenen menos elementos por página mientras más elementos se insertan. Por otro lado, el Árbol B no genera ningún tipo de partición sobre el conjunto, pues todos sus nodos almacenan elementos, así que el Árbol B \emph{no se degenera} cuando la cantidad de elementos se aproxima al máximo número de elementos posible.\\
+
+Lo anterior permite elaborar la primera hipótesis sobre el experimento.
+
+\begin{center}
+\textbf{Existe un trade off entre búsqueda y eficiencia de almacenamiento.}
+\end{center}
+
+Además, sin lugar a dudas que se tratará de probar experimentalmente que \textbf{las búsquedas son más lentas en árboles B que en ambas estructura de hashing}.\\
+
+Respecto de las diferencias entre ambas estructuras de hashing, el extendible debería ser más rápido que el hashing lineal, porque todo el procesamiento de lo que se denomina un \emph{bucket} es hecho en memoria principal, mientras que en el hashing lineal, el procesamiento de los buckets es hecho en memoria secundaria, lo que implica mayor cantidad de accesos a disco en esta estructura.
 
 
 \newpage
@@ -103,7 +126,7 @@ El trabajo de experimentar con memoria secundaria es, en general, bastante más 
 Considerando las limitaciones que ofrecen las llamadas a sistema de C, el esquema será el siguiente:
 
 \begin{itemize}
-\item Una estructura será un sólo archivo gigante con sus datos en disco
+\item Una estructura será un montón de archivos que almacenan la información de cada página de disco
 \item Escribir y modificar un bloque se hará vía las llamadas \texttt{fwrite} y \texttt{fseek} (que internamente usan la llamada a sistema \texttt{write} y algunas otras más).
 \end{itemize}
 
@@ -119,24 +142,123 @@ Para entender mejor los resultados que se presentan en la siguiente sección, en
 Es natural que los resultados puedan variar mucho según la forma en la que se implementan las estructuras de datos en memoria secundaria, y es justamente por eso que leer esta sección es de especial importancia para entender los resultados de este experimento \emph{particular} con las implementaciones aquí descritas.
 
 \subsection{Árbol B (B-Tree)}
+Como ya se dijo en la introducción, un Árbol B almacena $B$ elementos en cada nodo, y éste tiene $B+1$ hijos. Cada hijo cumple con la misma propiedad, pero existen otros invariantes.
+
+\begin{itemize}
+\item Cada nodo, salvo la raíz, tendrá al menos $\lceil \frac{B}{2} \rceil$ elementos.
+\item Todas las hojas del árbol están a la misma profundidad.
+\item Todos los elementos de un nodo están ordenados.
+\end{itemize}
+
+Para mantener los invariantes es necesario explicar los algoritmos de inserción y búsqueda. En adelante $K$ será el elemento buscado.
+
+\subsubsection{Búsqueda}
+Bastante simple, se compara $K$ con todos los elementos de un nodo $E_i$ hasta que $E_ > K$ o bien $K = E_i$, si sucede esto último se encuentra el elemento y el algoritmo termina. Si no, se baja por el $i$-ésimo hijo del nodo. Nótese que es el $i$-ésimo, pues, en el momento que $E_i > K$, $i$ corresponde al hijo que almacena los elementos más pequeños posibles que además son mayores que $K$.
+
+\subsubsection{Inserción}
+Se inserta un elemento en su posición correcta en la hoja que le corresponde y después empieza un proceso de \emph{subir} por el árbol en que cada padre ``arregla'' a su hijo. Esto porque insertar un elemento en un nodo puede causarle \emph{overflow}, de manera que si es que se admiten $B$ elementos, no está permitido que un nodo tenga $B+1$ elementos.\\
+
+Así, un padre que detecta que un hijo suyo tiene overflow, toma el elemento ubicado en $\lceil \frac{B}{2}\rceil$, lo inserta en sí mismo, divide los elementos izquierdos y derechos en dos nuevos nodos, reagrupa sus los hijos de sus hijos, y espera a que su padre arregle su ahora potencial overflow.
+
+\subsubsection{Eliminación}
+Este es el proceso más complicado de todo, pues al eliminar se puede producir un \emph{underflow}. Se divide el proceso de borrado en dos partes.\\
+
+\textbf{\underline{Bajada}} Si el elemento a borrar está en una hoja, se pasa directamente al proceso de subida. Si el elemento a borrar está en un nodo interno, se le pide el elemento de más a la izquierda al hijo derecho. Al llegar a una hoja, se le remueve dicho elemento y se inserta donde se borró el elemento en el nodo interno inicial. Después se pasa a la parte de Subida.
+
+\textbf{\underline{Subida}} Un nodo detecta que su hijo tiene underflow. Para ello encuentra un hermano (en la implementación se usa siempre el izquierdo, a menos que no se pueda) y dependiendo de cuántos elementos tenga es la acción que se debe tomar. Si el nodo hermano puede \emph{prestarle} elementos al nodo con underflow, está todo bien y se ejecuta la acción que se denomina \emph{shift Horario}. Es decir, el hizo izquierdo pasa su elemento más a la derecha al padre y el padre pasa su elemento al hijo derecho (que tiene underflow), esto genera que el último hijo del hermano pasa a ser el primero del nodo con underflow. Si el hijo izquierdo tiene underflow se hace un proceso análogo que se llama \emph{shift Antihorario}, en el que el hermano que pasa elementos es el derecho en vez del izquierdo.\\
+
+Si no se puede hacer un shift, es porque ambos hermanos tienen exactamente $\lceil \frac{B}{2}\rceil$ elementos, y la operación que se debe hacer es un \emph{merge}, que es exactamente inverso a la operación de dividir un nodo, esto es, el nuevo nodo tiene todos los elementos del nodo izquierdo, después el elemento del padre y por último todos los elementos del hijo derecho, con los hijos igualmente acomodados.
+
 
 \subsection{Hashing Extendible}
+
+El hashing extendible ocupa un poquito de memoria principal para su ejecución, a cambio la promesa es que garantiza $O(1)$ accesos a disco.\\
+
+Se usa un \emph{Trie} en memoria principal para subdividir los hashes de las strings según su $k$-ésimo bit de hash\footnote{En realidad hemos usado $k$ bits de atrás hacia adelante, pero igualmente se puede hacer de adelante hacia atrás.}, los nodos internos parten el conjunto y las hojas apuntan a archivos en disco que contienen los elementos. Las búsquedas se hacen linealmente en las páginas. Esto garantiza exactamente 1 acceso a disco por búsqueda, y 3 por inserción.\\
+
+Al insertarse un elemento se chequeda overflow en la página donde se inserta el elemento, de haberlo se cambia la hoja por un nodo interno y se rehashean todos los elementos de la página y se agrupan por su $(p+1)$-ésimo bit de su función de hash, en que $p$ denota la profundidad de la hoja antigua. La eliminación es el proceso inverso, donde se vuelven a juntar dos hojas si es que ambas juntas almacenan $B$ elementos.
+
 \subsection{Hashing Lineal}
-\subsubsection{Política 1}
-\subsubsection{Política 2}
+
+El hashing lineal requiere una función de hashing a la que se le pueda aplicar la operación \texttt{mod}. En cualquier estado del hash se almacena un entero $S$ que cumple con la propiedad de que la estructura \emph{quisiera} almacenar $2S$ páginas, y existe otro entero $n$ (nótese la minúscula, para diferenciarlo de $N$, el input) que indica la cantidad de páginas reales que existen en la estructura, por ello antes se ha puesto en cursiva la palabra ``quisiera''.\\
+
+Para buscar o insertar un elemento se sigue el siguiente algoritmo, sea $b$ el bucket donde se debe buscar, y $H$ el hash evaluado en el elemento a buscar:
+\begin{enumerate}
+\item $b = H\mod S$
+\item si $bp < n\mod S$ entonces $b = H\mod 2S$
+\end{enumerate}
+
+Al llenarse un bucket, se crea una lista de páginas correspondientes a un bucket donde están todos sus elementos. La política de expansión y contracción de la cantidad de páginas aceptadas es responsabilidad del usuario de la estructura. En este experimento sólo se usará una política de expansión.\\
+
+Se contraerá cuando la razón entre elementos totales y cantidad de buckets sea menor a 0.83, y se expanderá cuando la razón entre elementos totales y cantidad de buckets sea mayor a 1.5. Ambos factores están sobre la cantidad total de elementos por página.
+
+\subsection{Función de Hashing}
+Lo único que se ha hecho para la función de hashing es usar la representación binaria de las strings, es decir, a cada carácter se le asigna 2 bits que lo caracterizan, y con ello caen justamente 32 bits de hashing por cada cadena, esto cabe en un \texttt{unsigned int}. Note que todas las cadenas son de largo 15, o sea, 16 bytes en \texttt{C}, y por tanto 32 bits de hash, que equivalen a 4 bytes.
+
+\subsection{Páginas en memoria secundaria}
+Para almacenar los elementos correctamente en memoria secundaria lo que se ha hecho es \emph{serializar} cada estructura de datos según el siguiente diseño:
+
+\subsubsection{Árbol B}
+\begin{itemize}
+\item 4 bytes que corresponden a la cantidad de elementos de la página
+\item 4 bytes que corresponden a la cantidad de hijos de la página
+\item 4 bytes que corresponen al indice propio de esta página
+\item 3264 bytes que corresponen a 204 cadenas de 16 bytes.
+\item 820 bytes que corresponen a 205 índices posibles de cada hijo de la página
+\end{itemize}
+
+Correspondientes a 4096 bytes. Las páginas se almacenan en ese exacto órden. Por razones de tiempo y de complejidad, no se ha almacenado el par $(K,V)$ asociado a un diccionario, sino que sólo $K$, esto no interfiere de ninguna manera en las pruebas ni accesos a disco, puesto que no se considera el procesamiento en memoria principal.
+
+\subsubsection{Hashing Extendible}
+Una página de hashing extendible tiene la siguiente estructura:
+
+\begin{itemize}
+\item 4 bytes que corresponden al número de elementos
+\item 4 bytes que corresponden a la profundidad de la página en el Trie.
+\item 4064 bytes que corresponden a 127 pares $(K,V)$ de 32 bytes cada uno.
+\end{itemize}
+
+Esto da un total de 4072 bytes. Desafortunadamente no se puede almacenar más información de forma simple, así que se pierden 24 bytes por página.
+
+\subsubsection{Hashing Lineal}
+Una página de hashing lineal tiene casi la misma estructura que una página de hashing extendible, pero en vez de almacenar la profundidad de la página, se almacena el índice de la página en la lista de páginas de su propio bucket. Esto da también un total de 4072 bytes por página, 24 bytes perdidos y 127 pares de información relevante para el hash.
 
 \newpage
 \section{Resultados}
 
+\subsection{Inserción}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=1.0]{insercion.png}
+\end{center}
+\end{figure}
+
+\subsection{Eliminación}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=1.0]{eliminacion.png}
+\end{center}
+\end{figure}
+
+\subsection{Búsqueda}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=1.0]{busqueda.png}
+\end{center}
+\end{figure}
+
 
 \newpage
 \section{Análisis e Interpretación de los Datos}
-
-\newpage
-\section{Conclusiones}
+Se puede ver que en general, es mejor el Hashing extendible, pues realiza \textbf{siempre} menos accesos a disco que cualquier estructura. Queda pendiente el análisis de ocupación, que no se ha hecho por tiempo.
 
 \newpage
 \section{Anexos}
+
+\subsection{Discusión del tiempo de ejecución y la precisión de las mediciones}
+Un análisis mas exhaustivo hubiese incluido una mayor cantidad de experimentos, de modo de disminuir el error asociado a las mediciones. En este experimento, por razones de tiempo, de sanidad mental, de calidad de vida y de estrés universitario no se ha hecho esta tan necesaria medición. Es más, se ha reducido el espacio de pruebas para cada estructura de datos desde $2^{25}$ a $2^{20}$.\\
+
+Siendo conscientes del hecho anterior, no es perdonable el hecho de no generar promedios, pero el tiempo de ejecución de un sólo experimento es demasiado grande como para esperar que se pueda entregar medidas aceptables. Lo que simplemente queda es esperar que la muestra generada al azar sea representativa de una condición probable de ejecución, que, dada por la naturaleza de repeticiones del experimento, estamos cerca del $63\%$, pues 
 
 \end{document} 
 

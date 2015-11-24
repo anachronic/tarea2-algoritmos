@@ -58,7 +58,8 @@ void eliminar_cadena(struct cadena_struct *cs, int k){
   if(cs == NULL || cs->cadenas == NULL || cs->cadenas[k] == NULL) return;
 
   free(cs->cadenas[k]);
-  memmove(cs->cadenas + k, cs->cadenas + k + 1, sizeof(char*)*(cs->num_elems - k - 1));
+  if(cs->num_elems - k - 1 > 0)
+    memmove(cs->cadenas + k, cs->cadenas + k + 1, sizeof(char*)*(cs->num_elems - k - 1));
   cs->num_elems--;
 }
 

@@ -39,19 +39,19 @@ int main(int argc, char **argv) {
   btree_new(BTREE_FILE);
 
   FILE *fbtree = fopen("btree_resultados_insercion.dat", "wt");
-  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fbtree, "#milestone\tI/O acumulado\tp ocupacion\n");
   FILE *fhext = fopen("hext_resultados_insercion.dat", "wt");
-  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fhext, "#milestone\tI/O acumulado\tp ocupacion\n");
   FILE *fhlin = fopen("hlin_resultados_insercion.dat", "wt");
-  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fhlin, "#milestone\tI/O acumulado\tp ocupacion\n");
 
   struct hash_extendible hext;
@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     hashext_insertar(&hext, get_cadena(&cs, k), get_cadena(&cs, k));
     hashlin_insertar(&hlin, get_cadena(&cs, k), get_cadena(&cs, k));
 
-    for (potencia=20; potencia<=25; potencia++){
+    for (potencia=15; potencia<=20; potencia++){
       if(k+1==(1<<potencia)){
         fprintf(fbtree, "%i\t%lu\t%f\n", k+1, tree_accesos, get_ocupacion_btree(BTREE_FILE));
         fprintf(fhext, "%i\t%lu\t%f\n", k+1, hext_accesos, get_ocupacion_hext(&hext));
@@ -95,30 +95,30 @@ int main(int argc, char **argv) {
   hext_accesos = 0;
 
   fbtree = fopen("btree_resultados_busqueda.dat", "wt");
-  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fbtree, "#milestone\tI/O acumulado\tp ocupacion\n");
   fhext = fopen("hext_resultados_busqueda.dat", "wt");
-  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fhext, "#milestone\tI/O acumulado\tp ocupacion\n");
   fhlin = fopen("hlin_resultados_busqueda.dat", "wt");
-  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fhlin, "#milestone\tI/O acumulado\tp ocupacion\n");
 
-  printf("Buscando %i cadenas.\n", buscar);
   buscar = cs.num_elems;
+  printf("Buscando %i cadenas.\n", buscar);
 
   for(k=0; k<buscar; k++){
     btree_search(BTREE_FILE, get_cadena(&cs, k));
     hashext_buscar(&hext, get_cadena(&cs, k));
     hashlin_buscar(&hlin, get_cadena(&cs, k));
 
-    for (potencia=20; potencia<=25; potencia++){
+    for (potencia=15; potencia<=20; potencia++){
       if(k+1==(1<<potencia)){
         fprintf(fbtree, "%i\t%lu\t%f\n", k+1, tree_accesos, get_ocupacion_btree(BTREE_FILE));
         fprintf(fhext, "%i\t%lu\t%f\n", k+1, hext_accesos, get_ocupacion_hext(&hext));
@@ -136,35 +136,35 @@ int main(int argc, char **argv) {
   hext_accesos = 0;
 
   fbtree = fopen("btree_resultados_eliminacion.dat", "wt");
-  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fbtree, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fbtree, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fbtree, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fbtree, "#milestone\tI/O acumulado\tp ocupacion\n");
   fhext = fopen("hext_resultados_eliminacion.dat", "wt");
-  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhext, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fhext, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fhext, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fhext, "#milestone\tI/O acumulado\tp ocupacion\n");
   fhlin = fopen("hlin_resultados_eliminacion.dat", "wt");
-  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas");
-  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas");
-  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos");
+  fprintf(fhlin, "#milestone: Número de elementos con los que se pide las pruebas\n");
+  fprintf(fhlin, "#I/O acumulado: cantidad ACUMULADA de lecturas + escrituras totales en las ops. realizadas\n");
+  fprintf(fhlin, "#p ocupacion: el porcentaje de ocupación de la estructura de datos y sus archivos\n");
   fprintf(fhlin, "#milestone\tI/O acumulado\tp ocupacion\n");
 
-
-  printf("Eliminando %i cadenas\n", borrar);
   borrar = cs.num_elems;
+  printf("Eliminando %i cadenas\n", borrar);
 
-  for(k=intrand(cs.num_elems); cs.num_elems>0;){
+  while(cs.num_elems>0){
+    k=intrand(cs.num_elems);
     hashext_eliminar(&hext, get_cadena(&cs, k));
     hashlin_eliminar(&hlin, get_cadena(&cs, k));
     btree_borrar(BTREE_FILE, get_cadena(&cs, k));
 
-    for (potencia=20; potencia<=25; potencia++){
-      if(k+1==(1<<potencia)){
-        fprintf(fbtree, "%i\t%lu\t%f\n", k+1, tree_accesos, get_ocupacion_btree(BTREE_FILE));
-        fprintf(fhext, "%i\t%lu\t%f\n", k+1, hext_accesos, get_ocupacion_hext(&hext));
-        fprintf(fhlin, "%i\t%lu\t%f\n", k+1, hlin_accesos, get_ocupacion_hlin(&hlin));
+    for (potencia=15; potencia<=20; potencia++){
+      if(cs.num_elems==(1<<potencia)){
+        fprintf(fbtree, "%i\t%lu\t%f\n", 1<<potencia, tree_accesos, get_ocupacion_btree(BTREE_FILE));
+        fprintf(fhext, "%i\t%lu\t%f\n", 1<<potencia, hext_accesos, get_ocupacion_hext(&hext));
+        fprintf(fhlin, "%i\t%lu\t%f\n", 1<<potencia, hlin_accesos, get_ocupacion_hlin(&hlin));
       }
     }
     eliminar_cadena(&cs, k);
